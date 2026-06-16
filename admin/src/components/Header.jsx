@@ -125,7 +125,7 @@ const Header = ({ onMenuClick }) => {
 
       <div className="flex items-center gap-4">
         <motion.a
-          onClick={() => window.open('http://localhost:5174', '_blank')}
+          onClick={() => window.open(import.meta.env.DEV ? 'http://localhost:5174' : 'https://ganga-maxx-marketplace.vercel.app', '_blank')}
           whileHover={{ scale: 1.02 }}
           className="relative p-2.5 rounded-xl bg-slate-50 dark:bg-darkbg-900 text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-darkbg-700 hover:bg-slate-100 dark:hover:bg-darkbg-700 transition duration-300 shadow-sm group cursor-pointer"
           title="Preview Website"

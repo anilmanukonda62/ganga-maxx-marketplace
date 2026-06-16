@@ -527,7 +527,7 @@ const Dashboard = () => {
 
           {/* Action 4: Preview Website */}
           <motion.a
-            onClick={() => window.open('http://localhost:5174', '_blank')}
+            onClick={() => window.open(import.meta.env.DEV ? 'http://localhost:5174' : 'https://ganga-maxx-marketplace.vercel.app', '_blank')}
             whileHover={{ scale: 1.02 }}
             className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 dark:border-darkbg-700 hover:border-primary-200 dark:hover:border-primary-950 bg-slate-50/50 dark:bg-darkbg-900/10 hover:bg-slate-100/50 dark:hover:bg-darkbg-900/30 transition duration-300 group cursor-pointer"
           >
