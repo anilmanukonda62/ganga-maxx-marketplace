@@ -84,7 +84,9 @@ export const Enquiry = () => {
         message: formData.requirements || undefined
       };
 
-      const API_URL = 'https://ganga-maxx-marketplace-ct25.onrender.com/api';
+      const API_URL = import.meta.env.DEV 
+        ? '/api' 
+        : 'https://ganga-maxx-marketplace-ct25.onrender.com/api';
       const response = await fetch(`${API_URL}/enquiries`, {
         method: 'POST',
         headers: {
