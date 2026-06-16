@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
@@ -14,3 +15,7 @@ The React Compiler is not enabled on this template because of its impact on dev 
 ## Expanding the ESLint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+=======
+# ganga-maxx-marketplace
+ Ganga Maxx Marketplace — A full-stack B2B Product Catalog Website for institutional cleaning &amp; hygiene supplies. Built with React, Node.js, Express, MongoDB &amp; a secure Admin Panel. Features real-time product management, B2B enquiry system, dark/light mode, and live admin dashboard. 
+>>>>>>> 0fa45cc5dcd6371565cb3fc7f85504b4107b61e1

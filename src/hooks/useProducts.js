@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const API_URL = '/api';
+const API_URL = 'https://ganga-maxx-marketplace-ct25.onrender.com/api';
 
 export const useProducts = () => {
   const [products, setProducts] = useState([]);
