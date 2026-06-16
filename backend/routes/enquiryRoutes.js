@@ -1,0 +1,40 @@
+const express = require('express');
+const router = express.Router();
+const { body } = require('express-validator');
+const {
+  createEnquiry,
+  getEnquiries,
+  getEnquiryById,
+  updateEnquiryStatus,
+  deleteEnquiry,
+} = require('../controllers/enquiryController');
+const { protect } = require('../middleware/authMiddleware');
+
+const validateEnquiry = [
+  body('fullName').notEmpty().withMessage('Full name is required').trim(),
+  body('phone').notEmpty().withMessage('Phone number is required').trim(),
+  body('companyName').notEmpty().withMessage('Company name is required').trim(),
+  body('email').optional({ checkFalsy: true }).isEmail().withMessage('Invalid email address').trim(),
+  body('quantity').optional().trim(),
+  body('productInterested').optional().trim(),
+  body('message').optional().trim(),
+];
+
+const validateStatusUpdate = [
+  body('status')
+    .notEmpty()
+    .withMessage('Status is required')
+    .isIn(['New', 'Contacted', 'Closed'])
+    .withMessage('Invalid status value'),
+];
+
+// Public route to submit enquiry
+router.post('/', validateEnquiry, createEnquiry);
+
+// Admin-only protected routes
+router.get('/', protect, getEnquiries);
+router.get('/:id', protect, getEnquiryById);
+router.put('/:id/status', protect, validateStatusUpdate, updateEnquiryStatus);
+router.delete('/:id', protect, deleteEnquiry);
+
+module.exports = router;

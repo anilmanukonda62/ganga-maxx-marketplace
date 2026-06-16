@@ -1,0 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-800 font-sans antialiased selection:bg-primary-500 selection:text-white transition-colors duration-300;
+  }
+  
+  html.dark body {
+    @apply bg-darkbg-900 text-slate-100;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 dark:bg-darkbg-700 rounded-full hover:bg-slate-300 dark:hover:bg-darkbg-600 transition;
+}
+
+/* Shake animation for validation failure */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); }
+  20%, 40%, 60%, 80% { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Print styles for window.print() reports */
+@media print {
+  body {
+    background-color: white !important;
+    color: black !important;
+    font-family: 'Inter', sans-serif !important;
+  }
+  
+  /* Hide all non-printable components */
+  header, 
+  aside, 
+  nav, 
+  button, 
+  a.no-print,
+  .no-print, 
+  select, 
+  input, 
+  .pagination-controls,
+  .filters-bar,
+  .bulk-actions-toolbar,
+  .mobile-menu-trigger,
+  .tooltip {
+    display: none !important;
+  }
+  
+  /* Ensure main layout container expands fully */
+  main, 
+  div, 
+  section {
+    position: static !important;
+    overflow: visible !important;
+    height: auto !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Show and format print headers */
+  .print-header {
+    display: block !important;
+    margin-bottom: 24px !important;
+    border-bottom: 2px solid #1a7a4c !important;
+    padding-bottom: 12px !important;
+  }
+
+  /* Table styling */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-top: 16px !important;
+  }
+  
+  th, td {
+    border: 1px solid #cbd5e1 !important;
+    padding: 6px 10px !important;
+    text-align: left !important;
+    font-size: 10px !important;
+    color: black !important;
+  }
+  
+  th {
+    background-color: #f8fafc !important;
+    font-weight: bold !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+  }
+}
+
+/* Custom focus state green glow */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(26, 122, 76, 0.15);
+  border-color: #1a7a4c !important;
+}
