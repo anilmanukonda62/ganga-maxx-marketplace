@@ -1,18 +1,53 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, AlertCircle, CheckCircle, Info, Send, PhoneCall } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useProducts } from '../hooks/useProducts';
 import { ProductCard } from '../components/ProductCard';
+
+const recommendationRules = {
+  'cleaning-chemicals': ['cleaning-tools-equipment', 'eco-friendly-products'],
+  'cleaning-tools-equipment': ['cleaning-chemicals', 'washroom-supplies'],
+  'mechanical-equipment': ['cleaning-chemicals', 'cleaning-tools-equipment'],
+  'washroom-supplies': ['cleaning-chemicals', 'eco-friendly-products'],
+  'eco-friendly-products': ['cleaning-chemicals', 'washroom-supplies'],
+};
 
 export const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getProductById, getRelatedProducts, categories, loading, error, retryFetch } = useProducts();
+  const { getProductById, getRelatedProducts, categories, products, loading, error, retryFetch } = useProducts();
 
   const product = getProductById(id);
 
   const categoryObj = categories.find((c) => c.id === product?.category);
   const relatedProducts = getRelatedProducts(product, 4);
+
+  const recommendedProducts = useMemo(() => {
+    if (!product || !products || products.length === 0) return [];
+    
+    const rules = recommendationRules[product.category] || [];
+    let candidates = [];
+
+    // 1. Collect candidates from the recommended categories (excluding current product)
+    rules.forEach(cat => {
+      const catProducts = products.filter(p => p.category === cat && p.id !== product.id);
+      candidates = [...candidates, ...catProducts];
+    });
+
+    // 2. Select 3 products (mix from categories, or first 3)
+    let selected = candidates.slice(0, 3);
+
+    // 3. If we don't have 3, fill with other products (excluding current, candidates, and more-from-category)
+    if (selected.length < 3) {
+      const moreFromCategoryIds = relatedProducts.map(p => p.id);
+      const excludedIds = [product.id, ...selected.map(p => p.id), ...moreFromCategoryIds];
+      const fallbackProducts = products.filter(p => !excludedIds.includes(p.id));
+      selected = [...selected, ...fallbackProducts.slice(0, 3 - selected.length)];
+    }
+
+    return selected.slice(0, 3);
+  }, [product, products, relatedProducts]);
 
   // Stock statuses
   const isOutOfStock = product?.stock?.status === 'out_of_stock';
@@ -267,6 +302,34 @@ export const ProductDetail = () => {
             ))}
           </div>
         </section>
+      )}
+
+      {/* You May Also Need (AI Recommendations) */}
+      {recommendedProducts.length > 0 && (
+        <motion.section
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          className="border-t border-slate-100 dark:border-slate-800/80 pt-16 mt-12"
+        >
+          <div className="flex flex-wrap items-center gap-3 mb-8">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white">
+              🤖 You May Also Need
+            </h2>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-brand-50 dark:bg-brand-950/20 text-brand-600 dark:text-brand-400 border border-brand-100 dark:border-brand-900/30">
+              AI Recommended
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {recommendedProducts.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-6 italic">
+            Recommendations based on your product interest
+          </p>
+        </motion.section>
       )}
 
     </div>

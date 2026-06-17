@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, SlidersHorizontal, ChevronDown, RotateCcw, X, Filter } from 'lucide-react';
 import { useProducts } from '../hooks/useProducts';
@@ -13,6 +13,9 @@ export const Products = () => {
   const { min: limitMin, max: limitMax } = useMemo(() => getPriceRange(), [products]);
 
   // States
+  const navigate = useNavigate();
+  const searchContainerRef = useRef(null);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [priceMax, setPriceMax] = useState(limitMax);
@@ -20,6 +23,66 @@ export const Products = () => {
   const [inStockOnly, setInStockOnly] = useState(false);
   const [sortBy, setSortBy] = useState('featured'); // featured, price-asc, price-desc
   const [showSidebar, setShowSidebar] = useState(false); // Mobile sidebar toggle
+
+  // Suggestions states
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeSuggestion, setActiveSuggestion] = useState(-1);
+
+  // Suggestions debouncing effect
+  useEffect(() => {
+    if (searchQuery.trim().length >= 2) {
+      const delayDebounceFn = setTimeout(() => {
+        const query = searchQuery.toLowerCase().trim();
+        const filtered = products.filter(p => 
+          p.name.toLowerCase().includes(query) || 
+          p.category.toLowerCase().includes(query)
+        );
+        setSuggestions(filtered.slice(0, 6));
+        setShowSuggestions(true);
+      }, 300);
+
+      return () => clearTimeout(delayDebounceFn);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      setActiveSuggestion(-1);
+    }
+  }, [searchQuery, products]);
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+        setActiveSuggestion(-1);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleKeyDown = (e) => {
+    if (!showSuggestions || suggestions.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveSuggestion(prev => (prev < suggestions.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveSuggestion(prev => (prev > 0 ? prev - 1 : suggestions.length - 1));
+    } else if (e.key === 'Enter') {
+      if (activeSuggestion >= 0 && activeSuggestion < suggestions.length) {
+        e.preventDefault();
+        navigate(`/product/${suggestions[activeSuggestion].id}`);
+        setShowSuggestions(false);
+        setActiveSuggestion(-1);
+      }
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setActiveSuggestion(-1);
+    }
+  };
 
   // Intermediate string input states to allow typing/deleting without instant clamping
   const [minInput, setMinInput] = useState(String(limitMin));
@@ -218,7 +281,7 @@ export const Products = () => {
         {/* Sort and Filters toggle */}
         <div className="flex items-center gap-3 self-start md:self-end w-full md:w-auto">
           {/* Search Bar on Desktop/Tablet */}
-          <div className="relative flex-grow md:max-w-xs md:w-64">
+          <div ref={searchContainerRef} className="relative flex-grow md:max-w-xs md:w-64">
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
               <Search size={16} />
             </span>
@@ -227,8 +290,63 @@ export const Products = () => {
               placeholder="Search products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => {
+                if (searchQuery.trim().length >= 2) {
+                  setShowSuggestions(true);
+                }
+              }}
               className="w-full pl-9 pr-4 py-2 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 dark:focus:ring-brand-400/50"
             />
+            {/* Auto-suggestions dropdown */}
+            <AnimatePresence>
+              {showSuggestions && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden z-50 max-h-80 overflow-y-auto"
+                >
+                  {suggestions.length > 0 ? (
+                    suggestions.map((suggestion, index) => {
+                      const categoryObj = categories.find(c => c.id === suggestion.category);
+                      return (
+                        <div
+                          key={suggestion.id}
+                          onClick={() => {
+                            navigate(`/product/${suggestion.id}`);
+                            setShowSuggestions(false);
+                            setActiveSuggestion(-1);
+                          }}
+                          className={`flex items-center gap-3 p-2.5 cursor-pointer transition-colors duration-200 select-none ${
+                            index === activeSuggestion
+                              ? 'bg-slate-50 dark:bg-slate-800 text-brand-600 dark:text-brand-400'
+                              : 'hover:bg-slate-50 dark:hover:bg-slate-800/40 text-slate-700 dark:text-slate-200'
+                          }`}
+                        >
+                          <img
+                            src={suggestion.image}
+                            alt={suggestion.name}
+                            className="w-10 h-10 object-contain rounded bg-white p-0.5 border border-slate-100 dark:border-slate-800"
+                          />
+                          <div className="flex-grow min-w-0">
+                            <p className="text-xs font-bold truncate leading-tight">{suggestion.name}</p>
+                            <span className="inline-block mt-1 text-[10px] px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-md font-semibold font-sans">
+                              {categoryObj ? categoryObj.name : suggestion.category}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="p-4 text-center text-xs text-slate-400 dark:text-slate-500 select-none">
+                      No products found
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Sort Dropdown */}
