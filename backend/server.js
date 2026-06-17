@@ -33,7 +33,8 @@ const allowedOrigins = [
   'http://localhost:5174',
   'http://localhost:5175',
   'http://localhost:3000',
-  'https://ganga-maxx-marketplace.vercel.app'
+  'https://ganga-maxx-marketplace.vercel.app',
+  'https://ganga-maxx-admin.vercel.app'
 ];
 
 app.use(cors({
@@ -87,6 +88,35 @@ const server = app.listen(PORT, () => {
   console.log(
     `Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`
   );
+});
+
+// Setup Socket.io
+const socketio = require('socket.io');
+const io = socketio(server, {
+  cors: {
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (
+        allowedOrigins.indexOf(origin) !== -1 || 
+        origin.startsWith('http://localhost:') || 
+        origin.endsWith('.vercel.app')
+      ) {
+        return callback(null, true);
+      }
+      return callback(new Error('CORS policy block'), false);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+  }
+});
+
+app.set('io', io);
+
+io.on('connection', (socket) => {
+  console.log(`Socket client connected: ${socket.id}`);
+  socket.on('disconnect', () => {
+    console.log(`Socket client disconnected: ${socket.id}`);
+  });
 });
 
 // Handle unhandled promise rejections

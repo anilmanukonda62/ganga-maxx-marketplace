@@ -212,6 +212,11 @@ const createProduct = asyncHandler(async (req, res) => {
     description,
   });
 
+  const io = req.app.get('io');
+  if (io) {
+    io.emit('productAdded', product);
+  }
+
   res.status(201).json({
     success: true,
     data: product,
@@ -267,6 +272,11 @@ const updateProduct = asyncHandler(async (req, res) => {
 
   const updatedProduct = await product.save();
 
+  const io = req.app.get('io');
+  if (io) {
+    io.emit('productUpdated', updatedProduct);
+  }
+
   res.json({
     success: true,
     data: updatedProduct,
@@ -294,6 +304,11 @@ const deleteProduct = asyncHandler(async (req, res) => {
   }
 
   await Product.deleteOne({ id: numericId });
+
+  const io = req.app.get('io');
+  if (io) {
+    io.emit('productDeleted', { id: numericId });
+  }
 
   res.json({
     success: true,

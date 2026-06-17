@@ -1,8 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
+import { io } from 'socket.io-client';
 
 const API_URL = import.meta.env.DEV 
   ? '/api' 
   : 'https://ganga-maxx-marketplace-ct25.onrender.com/api';
+
+const SOCKET_URL = import.meta.env.DEV
+  ? 'http://localhost:5000'
+  : 'https://ganga-maxx-marketplace-ct25.onrender.com';
 
 export const useProducts = () => {
   const [products, setProducts] = useState([]);
@@ -46,6 +51,31 @@ export const useProducts = () => {
 
     return () => clearInterval(interval); // cleanup
   }, [fetchData]);
+
+  useEffect(() => {
+    const socket = io(SOCKET_URL);
+
+    socket.on('productUpdated', (updatedProduct) => {
+      setProducts((prev) =>
+        prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
+      );
+    });
+
+    socket.on('productDeleted', ({ id }) => {
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+    });
+
+    socket.on('productAdded', (newProduct) => {
+      setProducts((prev) => {
+        if (prev.some((p) => p.id === newProduct.id)) return prev;
+        return [...prev, newProduct];
+      });
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   // Retrieve all products
   const getAllProducts = () => products;
