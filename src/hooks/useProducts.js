@@ -38,7 +38,13 @@ export const useProducts = () => {
   }, []);
 
   useEffect(() => {
-    fetchData();
+    fetchData(); // initial fetch
+
+    const interval = setInterval(() => {
+      fetchData(); // fetch every 30 seconds
+    }, 30000);
+
+    return () => clearInterval(interval); // cleanup
   }, [fetchData]);
 
   // Retrieve all products
