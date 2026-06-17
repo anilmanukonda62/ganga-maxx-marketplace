@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, MapPin, Phone, Mail, CheckCircle, AlertCircle } from 'lucide-react';
+import { useProducts } from '../hooks/useProducts';
 
 export const Enquiry = () => {
   const location = useLocation();
+  const { products } = useProducts();
 
   // Initial pre-filled product from detail page state
   const prefilledProduct = location.state?.productName || '';
@@ -272,15 +274,20 @@ export const Enquiry = () => {
                   <label htmlFor="productInterested" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
                     Product Interested
                   </label>
-                  <input
-                    type="text"
+                  <select
                     id="productInterested"
                     name="productInterested"
                     value={formData.productInterested}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 dark:focus:ring-green-400/50 text-slate-800 dark:text-white"
-                    placeholder="Product name / variant (e.g. Soap Oil - 5L)"
-                  />
+                    className="w-full px-4 py-3 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 dark:focus:ring-green-400/50 text-slate-800 dark:text-white cursor-pointer"
+                  >
+                    <option value="">Select a Product</option>
+                    {products.map((p) => (
+                      <option key={p.id} value={p.name}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
