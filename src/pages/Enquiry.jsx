@@ -300,7 +300,7 @@ export const Enquiry = () => {
                     name="quantity"
                     value={formData.quantity}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 text-sm bg-slate-50 dark:bg-slate-955 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 dark:focus:ring-green-400/50 text-slate-800 dark:text-white"
+                    className="w-full px-4 py-3 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 dark:focus:ring-green-400/50 text-slate-800 dark:text-white"
                     placeholder="e.g. 50 units / 5 canisters"
                   />
                 </div>
