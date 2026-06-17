@@ -1,13 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { io } from 'socket.io-client';
 
 const API_URL = import.meta.env.DEV 
   ? '/api' 
   : 'https://ganga-maxx-marketplace-ct25.onrender.com/api';
-
-const SOCKET_URL = import.meta.env.DEV
-  ? 'http://localhost:5000'
-  : 'https://ganga-maxx-marketplace-ct25.onrender.com';
 
 export const useProducts = () => {
   const [products, setProducts] = useState([]);
@@ -15,10 +10,12 @@ export const useProducts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (isInitial = false) => {
     try {
-      setLoading(true);
-      setError(null);
+      if (isInitial) {
+        setLoading(true);
+        setError(null);
+      }
       const [productsRes, categoriesRes] = await Promise.all([
         fetch(`${API_URL}/products`),
         fetch(`${API_URL}/products/categories`)
@@ -30,52 +27,34 @@ export const useProducts = () => {
       const categoriesData = await categoriesRes.json();
       setProducts(productsData.data || []);
       setCategories(categoriesData.data || []);
+      if (!isInitial) {
+        setError(null); // Clear errors silently if background poll succeeds
+      }
     } catch (err) {
-      console.warn('API fetch failed, falling back to products.json:', err.message);
-      setError(err.message);
-      // Fallback to products.json if API fails
-      const fallback = await import('../data/products.json');
-      setProducts(fallback.products || []);
-      setCategories(fallback.categories || []);
+      console.warn('API fetch failed:', err.message);
+      if (isInitial) {
+        setError(err.message);
+        // Fallback to products.json if initial API fails
+        const fallback = await import('../data/products.json');
+        setProducts(fallback.products || []);
+        setCategories(fallback.categories || []);
+      }
     } finally {
-      setLoading(false);
+      if (isInitial) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    fetchData(); // initial fetch
+    fetchData(true); // initial fetch on mount (shows loading spinner)
 
     const interval = setInterval(() => {
-      fetchData(); // fetch every 30 seconds
-    }, 30000);
+      fetchData(false); // fetch fresh data every 5 seconds silently
+    }, 5000);
 
-    return () => clearInterval(interval); // cleanup
+    return () => clearInterval(interval);
   }, [fetchData]);
-
-  useEffect(() => {
-    const socket = io(SOCKET_URL);
-
-    socket.on('productUpdated', (updatedProduct) => {
-      setProducts((prev) =>
-        prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
-      );
-    });
-
-    socket.on('productDeleted', ({ id }) => {
-      setProducts((prev) => prev.filter((p) => p.id !== id));
-    });
-
-    socket.on('productAdded', (newProduct) => {
-      setProducts((prev) => {
-        if (prev.some((p) => p.id === newProduct.id)) return prev;
-        return [...prev, newProduct];
-      });
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
 
   // Retrieve all products
   const getAllProducts = () => products;
