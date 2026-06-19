@@ -4,11 +4,10 @@ import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { TableSkeleton } from '../components/LoadingSkeleton';
 import ConfirmModal from '../components/ConfirmModal';
-import { formatDate, exportToCSV } from '../utils/helpers';
+import { formatDate } from '../utils/helpers';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
-  Download,
   Phone,
   MessageCircle,
   Eye,
@@ -239,28 +238,7 @@ const Enquiries = () => {
   const currentItems = filteredEnquiries.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredEnquiries.length / itemsPerPage);
 
-  // CSV Export Trigger
-  const handleCSVExport = () => {
-    if (!filteredEnquiries.length) {
-      toast.error('No data available to export');
-      return;
-    }
 
-    const exportData = filteredEnquiries.map((e) => ({
-      Date: formatDate(e.createdAt),
-      Name: e.fullName,
-      Phone: e.phone,
-      Email: e.email || 'N/A',
-      Company: e.companyName,
-      'Product Interested': e.productInterested || 'N/A',
-      Quantity: e.quantity || 'N/A',
-      Message: e.message || 'N/A',
-      Status: e.status
-    }));
-
-    exportToCSV(exportData, `Enquiries_${statusFilter}_Export.csv`);
-    toast.success('Enquiries exported to CSV!');
-  };
 
   // WhatsApp click generator
   const getWhatsAppLink = (enq) => {
@@ -310,14 +288,7 @@ const Enquiries = () => {
             <Printer className="w-4 h-4" />
             Export PDF
           </motion.button>
-          <motion.button
-            onClick={handleCSVExport}
-            whileHover={{ scale: 1.02 }}
-            className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 dark:border-darkbg-700 bg-white dark:bg-darkbg-800 rounded-xl hover:bg-slate-50 dark:hover:bg-darkbg-700 text-slate-700 dark:text-slate-200 font-bold text-sm transition shadow-xs cursor-pointer shrink-0"
-          >
-            <Download className="w-4 h-4" />
-            Export to CSV
-          </motion.button>
+
         </div>
       </div>
 
