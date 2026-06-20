@@ -12,8 +12,12 @@ const axios = require('axios');
 const sendEmailViaBrevo = async ({ to, subject, htmlContent, attachments }) => {
   const apiKey = process.env.BREVO_API_KEY;
   if (!apiKey) {
+    console.error('BREVO_API_KEY environment variable is not defined.');
     throw new Error('BREVO_API_KEY environment variable is not defined.');
   }
+
+  // Print first 10 characters and length for security debugging
+  console.log(`[Brevo SMTP Debug] API Key prefix: "${apiKey.substring(0, 10)}...", Total Length: ${apiKey.length}`);
 
   const payload = {
     sender: {
@@ -33,14 +37,24 @@ const sendEmailViaBrevo = async ({ to, subject, htmlContent, attachments }) => {
     payload.attachment = attachments;
   }
 
-  const response = await axios.post('https://api.brevo.com/v3/smtp/email', payload, {
-    headers: {
-      'api-key': apiKey,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  return response.data;
+  try {
+    const response = await axios.post('https://api.brevo.com/v3/smtp/email', payload, {
+      headers: {
+        'api-key': apiKey.trim(),
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (err) {
+    if (err.response) {
+      console.error('[Brevo SMTP Debug] API response error data:', JSON.stringify(err.response.data));
+      console.error('[Brevo SMTP Debug] API response error status:', err.response.status);
+      throw new Error(`Brevo HTTP API Error: ${err.response.status} - ${JSON.stringify(err.response.data)}`);
+    } else {
+      console.error('[Brevo SMTP Debug] Request connection error:', err.message);
+      throw new Error(`Brevo HTTP API Connection Error: ${err.message}`);
+    }
+  }
 };
 
 module.exports = sendEmailViaBrevo;
