@@ -34,7 +34,22 @@ const sendEmailViaBrevo = async ({ to, subject, htmlContent, attachments }) => {
   };
 
   if (attachments && attachments.length > 0) {
-    payload.attachment = attachments;
+    payload.attachment = attachments.map(att => {
+      let content = att.content;
+      // Remove data URI prefix like "data:application/pdf;base64," if present
+      if (content.includes(';base64,')) {
+        content = content.split(';base64,')[1];
+      }
+      return {
+        content: content,
+        name: att.name
+      };
+    });
+
+    // Console log right before sending
+    payload.attachment.forEach(att => {
+      console.log(`[Brevo SMTP Debug] PDF Attachment: "${att.name}", Base64 Content Length: ${att.content.length} characters`);
+    });
   }
 
   try {

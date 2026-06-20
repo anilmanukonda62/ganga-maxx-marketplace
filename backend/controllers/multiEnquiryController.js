@@ -3,6 +3,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const { validationResult } = require('express-validator');
 const { generateQuotationEmailHTML } = require('../utils/emailHelper');
 const sendEmailViaBrevo = require('../utils/sendEmailViaBrevo');
+const generateQuotationPDF = require('../utils/generateQuotationPDF');
 
 /**
  * @desc    Submit a new multi-product enquiry
@@ -191,11 +192,35 @@ const sendMultiEnquiryQuotation = asyncHandler(async (req, res) => {
     notes
   );
 
+  let pdfBuffer;
+  try {
+    pdfBuffer = await generateQuotationPDF(
+      enquiry,
+      products,
+      subtotal,
+      taxPercent,
+      taxAmount,
+      grandTotal,
+      validityDate,
+      notes
+    );
+  } catch (pdfError) {
+    console.error('Failed to generate quotation PDF:', pdfError);
+    res.status(500);
+    throw new Error(`Failed to generate quotation PDF: ${pdfError.message}`);
+  }
+
   try {
     await sendEmailViaBrevo({
       to: enquiry.email,
       subject: `Ganga Maxx Supply Quotation - Enquiry ID: ${enquiry._id}`,
       htmlContent: emailHtml,
+      attachments: [
+        {
+          content: pdfBuffer.toString('base64'),
+          name: `Quotation-GMX-QT-${enquiry._id.toString().substring(0, 8).toUpperCase()}.pdf`
+        }
+      ]
     });
   } catch (error) {
     res.status(500);
