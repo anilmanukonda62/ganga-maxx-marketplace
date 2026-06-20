@@ -8,8 +8,28 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const generateQuotationEmailHTML = (customerName, products, subtotal, taxPercent, taxAmount, grandTotal, validityDate, notes) => {
+const generateQuotationEmailHTML = (
+  customerName,
+  products,
+  subtotal,
+  taxPercent,
+  taxAmount,
+  grandTotal,
+  validityDate,
+  notes,
+  discountType,
+  discountValue,
+  discountAmount,
+  taxableAmount,
+  cgstAmount,
+  sgstAmount
+) => {
   const formattedValidityDate = new Date(validityDate).toLocaleDateString('en-IN');
+  
+  const discAmt = discountAmount !== undefined ? discountAmount : 0;
+  const hasDiscount = discAmt > 0;
+  const discountLabel = discountType === 'percentage' ? `Bulk Discount (${discountValue}%):` : 'Bulk Discount:';
+  const taxBase = taxableAmount !== undefined ? taxableAmount : (subtotal - discAmt);
   
   const productRows = products.map(p => `
     <tr>
@@ -50,15 +70,29 @@ const generateQuotationEmailHTML = (customerName, products, subtotal, taxPercent
       <table style="width: 280px; margin-left: auto; margin-bottom: 30px; font-size: 14px; border-top: 1px solid #e2e8f0; padding-top: 12px; border-collapse: collapse;">
         <tr>
           <td style="color: #64748b; padding: 4px 0;">Subtotal:</td>
-          <td style="text-align: right; font-weight: bold; padding: 4px 0;">₹${subtotal.toLocaleString('en-IN')}</td>
+          <td style="text-align: right; font-weight: bold; padding: 4px 0;">₹${subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+        </tr>
+        ${hasDiscount ? `
+        <tr>
+          <td style="color: #64748b; padding: 4px 0;">${discountLabel}</td>
+          <td style="text-align: right; font-weight: bold; color: #dc2626; padding: 4px 0;">-₹${discAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
         </tr>
         <tr>
-          <td style="color: #64748b; padding: 4px 0;">GST (${taxPercent}%):</td>
-          <td style="text-align: right; font-weight: bold; padding: 4px 0;">₹${taxAmount.toLocaleString('en-IN')}</td>
+          <td style="color: #64748b; padding: 4px 0;">Taxable Amount:</td>
+          <td style="text-align: right; font-weight: bold; padding: 4px 0;">₹${taxBase.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+        </tr>
+        ` : ''}
+        <tr>
+          <td style="color: #64748b; padding: 4px 0;">CGST (${(taxPercent / 2)}%):</td>
+          <td style="text-align: right; font-weight: bold; padding: 4px 0;">₹${((cgstAmount !== undefined ? cgstAmount : taxAmount / 2)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+        </tr>
+        <tr>
+          <td style="color: #64748b; padding: 4px 0;">SGST (${(taxPercent / 2)}%):</td>
+          <td style="text-align: right; font-weight: bold; padding: 4px 0;">₹${((sgstAmount !== undefined ? sgstAmount : taxAmount / 2)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
         </tr>
         <tr style="border-top: 2px solid #1a7a4c;">
           <td style="color: #1a7a4c; font-weight: bold; padding: 10px 0 0 0; font-size: 16px;">Grand Total:</td>
-          <td style="color: #1a7a4c; text-align: right; font-weight: bold; padding: 10px 0 0 0; font-size: 16px;">₹${grandTotal.toLocaleString('en-IN')}</td>
+          <td style="color: #1a7a4c; text-align: right; font-weight: bold; padding: 10px 0 0 0; font-size: 16px;">₹${grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
         </tr>
       </table>
       

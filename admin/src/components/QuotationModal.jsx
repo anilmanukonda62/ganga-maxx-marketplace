@@ -10,6 +10,8 @@ export const QuotationModal = ({ isOpen, onClose, enquiry, type = 'single', onQu
   const [taxPercent, setTaxPercent] = useState(18);
   const [notes, setNotes] = useState('');
   const [validityDate, setValidityDate] = useState('');
+  const [discountType, setDiscountType] = useState('percentage');
+  const [discountValue, setDiscountValue] = useState(0);
   
   // Send statuses
   const [emailSent, setEmailSent] = useState(false);
@@ -55,6 +57,8 @@ export const QuotationModal = ({ isOpen, onClose, enquiry, type = 'single', onQu
       })));
       setTaxPercent(enquiry.finalQuotation.taxPercent !== undefined ? enquiry.finalQuotation.taxPercent : 18);
       setNotes(enquiry.finalQuotation.notes || '');
+      setDiscountType(enquiry.finalQuotation.discountType || 'percentage');
+      setDiscountValue(enquiry.finalQuotation.discountValue || 0);
       if (enquiry.finalQuotation.validityDate) {
         setValidityDate(new Date(enquiry.finalQuotation.validityDate).toISOString().split('T')[0]);
       }
@@ -121,6 +125,8 @@ export const QuotationModal = ({ isOpen, onClose, enquiry, type = 'single', onQu
     setValidityDate(defaultDate.toISOString().split('T')[0]);
     setTaxPercent(18);
     setNotes('');
+    setDiscountType('percentage');
+    setDiscountValue(0);
   }, [enquiry, isOpen, catalog, type]);
 
   if (!isOpen || !enquiry) return null;
@@ -145,8 +151,16 @@ export const QuotationModal = ({ isOpen, onClose, enquiry, type = 'single', onQu
   // Calculations
   const availableItems = productsList.filter(p => p.available);
   const subtotal = availableItems.reduce((acc, p) => acc + p.lineTotal, 0);
-  const taxAmount = parseFloat(((subtotal * taxPercent) / 100).toFixed(2));
-  const grandTotal = subtotal + taxAmount;
+
+  const discountAmount = discountType === 'percentage'
+    ? parseFloat(((subtotal * discountValue) / 100).toFixed(2))
+    : Math.min(discountValue, subtotal);
+
+  const taxableAmount = parseFloat((subtotal - discountAmount).toFixed(2));
+  const cgstAmount = parseFloat(((taxableAmount * taxPercent) / 200).toFixed(2));
+  const sgstAmount = parseFloat(((taxableAmount * taxPercent) / 200).toFixed(2));
+  const taxAmount = cgstAmount + sgstAmount;
+  const grandTotal = parseFloat((taxableAmount + taxAmount).toFixed(2));
 
 
 
@@ -170,7 +184,13 @@ export const QuotationModal = ({ isOpen, onClose, enquiry, type = 'single', onQu
       const payload = {
         products: productsList, // Includes unavailable items as marked
         subtotal,
+        discountType,
+        discountValue,
+        discountAmount,
+        taxableAmount,
         taxPercent,
+        cgstAmount,
+        sgstAmount,
         taxAmount,
         grandTotal,
         validityDate,
@@ -202,7 +222,13 @@ export const QuotationModal = ({ isOpen, onClose, enquiry, type = 'single', onQu
       const payload = {
         products: productsList,
         subtotal,
+        discountType,
+        discountValue,
+        discountAmount,
+        taxableAmount,
         taxPercent,
+        cgstAmount,
+        sgstAmount,
         taxAmount,
         grandTotal,
         validityDate,
@@ -354,6 +380,57 @@ export const QuotationModal = ({ isOpen, onClose, enquiry, type = 'single', onQu
               </table>
             </div>
 
+            {/* Bulk Discount Section */}
+            <div className="bg-slate-50 dark:bg-darkbg-900/40 border border-slate-100 dark:border-darkbg-750 p-4 rounded-xl space-y-3">
+              <h4 className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">
+                Bulk Discount (Optional)
+              </h4>
+              <div className="flex flex-col sm:flex-row gap-4 items-end">
+                <div className="flex-1 w-full">
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">
+                    Discount Type
+                  </label>
+                  <select
+                    value={discountType}
+                    onChange={(e) => {
+                      setDiscountType(e.target.value);
+                      setDiscountValue(0);
+                    }}
+                    className="w-full px-3 py-1.5 bg-white dark:bg-darkbg-900 border border-slate-200 dark:border-darkbg-700 rounded-lg text-slate-850 dark:text-white text-xs outline-none focus:ring-1 focus:ring-primary-500"
+                  >
+                    <option value="percentage">Percentage (%)</option>
+                    <option value="flat">Flat Amount (₹)</option>
+                  </select>
+                </div>
+                
+                <div className="flex-1 w-full">
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">
+                    {discountType === 'percentage' ? 'Discount Percentage (%)' : 'Discount Amount (₹)'}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max={discountType === 'percentage' ? "100" : undefined}
+                    value={discountValue || ''}
+                    placeholder={discountType === 'percentage' ? 'e.g. 10 for 10%' : 'e.g. 500'}
+                    onChange={(e) => {
+                      const val = Math.max(0, parseFloat(e.target.value) || 0);
+                      if (discountType === 'percentage') {
+                        setDiscountValue(Math.min(100, val));
+                      } else {
+                        setDiscountValue(val);
+                      }
+                    }}
+                    className="w-full px-3 py-1.5 bg-white dark:bg-darkbg-900 border border-slate-200 dark:border-darkbg-700 rounded-lg text-slate-850 dark:text-white text-xs outline-none focus:ring-1 focus:ring-primary-500 font-bold"
+                  />
+                </div>
+                
+                <div className="flex items-center justify-start sm:justify-end pb-2 font-semibold text-xs text-slate-500 dark:text-slate-400 min-w-[150px]">
+                  Discount Amount: <span className="font-bold text-slate-800 dark:text-white ml-1">₹{discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+            </div>
+
             {/* Note, Validity & Calculations Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
@@ -388,9 +465,38 @@ export const QuotationModal = ({ isOpen, onClose, enquiry, type = 'single', onQu
               <div className="bg-slate-50 dark:bg-darkbg-900/30 border border-slate-100 dark:border-darkbg-750 rounded-xl p-5 text-sm space-y-3.5">
                 <div className="flex justify-between items-center text-slate-500">
                   <span>Subtotal:</span>
-                  <strong className="text-slate-800 dark:text-slate-200">₹{subtotal.toLocaleString('en-IN')}</strong>
+                  <strong className="text-slate-800 dark:text-slate-200">₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
                 </div>
+                
+                {discountValue > 0 && (
+                  <div className="flex justify-between items-center text-slate-500 text-xs">
+                    <span>
+                      Bulk Discount ({discountType === 'percentage' ? `${discountValue}%` : `Flat`}):
+                    </span>
+                    <strong className="text-red-500">
+                      -₹{discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </strong>
+                  </div>
+                )}
+
+                {discountValue > 0 && (
+                  <div className="flex justify-between items-center text-slate-500">
+                    <span>Taxable Amount:</span>
+                    <strong className="text-slate-800 dark:text-slate-200">₹{taxableAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center text-slate-500">
+                  <span>CGST ({taxPercent / 2}%):</span>
+                  <strong className="text-slate-800 dark:text-slate-200">₹{cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+                </div>
+
+                <div className="flex justify-between items-center text-slate-500">
+                  <span>SGST ({taxPercent / 2}%):</span>
+                  <strong className="text-slate-800 dark:text-slate-200">₹{sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+                </div>
+
+                <div className="flex justify-between items-center text-slate-500 border-t border-slate-200/50 dark:border-darkbg-700/50 pt-2.5">
                   <div className="flex items-center gap-1.5">
                     <span>GST (Tax):</span>
                     <input
@@ -403,11 +509,12 @@ export const QuotationModal = ({ isOpen, onClose, enquiry, type = 'single', onQu
                     />
                     <span>%</span>
                   </div>
-                  <strong className="text-slate-800 dark:text-slate-200">₹{taxAmount.toLocaleString('en-IN')}</strong>
+                  <strong className="text-slate-800 dark:text-slate-200">₹{taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
                 </div>
+                
                 <div className="border-t border-slate-250 dark:border-darkbg-700 pt-3 flex justify-between items-center text-base">
                   <span className="font-bold text-primary-600 dark:text-primary-400">Grand Total:</span>
-                  <strong className="font-black text-primary-600 dark:text-primary-400">₹{grandTotal.toLocaleString('en-IN')}</strong>
+                  <strong className="font-black text-primary-600 dark:text-primary-400">₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
                 </div>
               </div>
 

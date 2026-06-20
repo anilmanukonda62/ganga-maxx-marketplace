@@ -47,18 +47,41 @@ const runTest = async () => {
   console.log('Starting PDF Generation Tests...');
   
   const scenarios = [
-    { name: '2_products', products: products2 },
-    { name: '8_products', products: products8 },
-    { name: '18_products', products: products18 }
+    { name: '2_products', products: products2, discountType: 'percentage', discountValue: 0 },
+    { name: '8_products', products: products8, discountType: 'flat', discountValue: 500 },
+    { name: '18_products', products: products18, discountType: 'percentage', discountValue: 10 }
   ];
 
   for (const s of scenarios) {
     // Filter available items for total calculations
     const availableItems = s.products.filter(p => p.available !== false);
     const subtotal = availableItems.reduce((sum, p) => sum + p.lineTotal, 0);
+    const discountType = s.discountType || 'percentage';
+    const discountValue = s.discountValue || 0;
+    const discountAmount = discountType === 'percentage' ? (subtotal * discountValue) / 100 : Math.min(discountValue, subtotal);
+    const taxableAmount = subtotal - discountAmount;
+    
     const taxPercent = 18;
-    const taxAmount = (subtotal * taxPercent) / 100;
-    const grandTotal = subtotal + taxAmount;
+    const cgstAmount = (taxableAmount * taxPercent) / 200;
+    const sgstAmount = (taxableAmount * taxPercent) / 200;
+    const taxAmount = cgstAmount + sgstAmount;
+    const grandTotal = taxableAmount + taxAmount;
+    
+    // Attach to mockEnquiry in memory so generateQuotationPDF reads them
+    mockEnquiry.finalQuotation = {
+      products: s.products,
+      subtotal,
+      discountType,
+      discountValue,
+      discountAmount,
+      taxableAmount,
+      taxPercent,
+      cgstAmount,
+      sgstAmount,
+      taxAmount,
+      grandTotal
+    };
+    
     const validityDate = new Date('2026-06-22T00:00:00.000Z');
     const notes = 'Thank you for choosing Ganga Maxx Marketplace. Standard B2B commercial terms apply.';
     

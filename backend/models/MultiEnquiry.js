@@ -33,11 +33,19 @@ const multiEnquirySchema = new mongoose.Schema({
       lineTotal: Number
     }],
     subtotal: Number,
+    discountType: { type: String, enum: ['percentage', 'flat'], default: 'percentage' },
+    discountValue: { type: Number, default: 0 },
+    discountAmount: { type: Number, default: 0 },
+    taxableAmount: Number,
+    gstRate: Number,
     taxPercent: Number,
+    cgstAmount: Number,
+    sgstAmount: Number,
     taxAmount: Number,
     grandTotal: Number,
     validityDate: Date,
-    notes: String
+    notes: String,
+    quotationNumber: String
   }
 }, { timestamps: true });
 

@@ -167,7 +167,21 @@ const deleteMultiEnquiry = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const sendMultiEnquiryQuotation = asyncHandler(async (req, res) => {
-  const { products, subtotal, taxPercent, taxAmount, grandTotal, validityDate, notes } = req.body;
+  const {
+    products,
+    subtotal,
+    discountType,
+    discountValue,
+    discountAmount,
+    taxableAmount,
+    taxPercent,
+    taxAmount,
+    cgstAmount,
+    sgstAmount,
+    grandTotal,
+    validityDate,
+    notes
+  } = req.body;
 
   const enquiry = await MultiEnquiry.findById(req.params.id);
 
@@ -189,8 +203,32 @@ const sendMultiEnquiryQuotation = asyncHandler(async (req, res) => {
     taxAmount,
     grandTotal,
     validityDate,
-    notes
+    notes,
+    discountType,
+    discountValue,
+    discountAmount,
+    taxableAmount,
+    cgstAmount,
+    sgstAmount
   );
+
+  // Populate finalQuotation temporarily on enquiry object in memory so that generateQuotationPDF can read it
+  enquiry.finalQuotation = {
+    products,
+    subtotal,
+    discountType,
+    discountValue,
+    discountAmount,
+    taxableAmount,
+    gstRate: taxPercent,
+    taxPercent,
+    cgstAmount,
+    sgstAmount,
+    taxAmount,
+    grandTotal,
+    validityDate,
+    notes
+  };
 
   let pdfBuffer;
   try {
@@ -232,11 +270,18 @@ const sendMultiEnquiryQuotation = asyncHandler(async (req, res) => {
   enquiry.finalQuotation = {
     products,
     subtotal,
+    discountType,
+    discountValue,
+    discountAmount,
+    taxableAmount,
+    gstRate: taxPercent,
     taxPercent,
+    cgstAmount,
+    sgstAmount,
     taxAmount,
     grandTotal,
     validityDate,
-    notes,
+    notes
   };
   enquiry.status = 'Quoted';
   
@@ -255,7 +300,21 @@ const sendMultiEnquiryQuotation = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const saveMultiEnquiryQuotationDraft = asyncHandler(async (req, res) => {
-  const { products, subtotal, taxPercent, taxAmount, grandTotal, validityDate, notes } = req.body;
+  const {
+    products,
+    subtotal,
+    discountType,
+    discountValue,
+    discountAmount,
+    taxableAmount,
+    taxPercent,
+    taxAmount,
+    cgstAmount,
+    sgstAmount,
+    grandTotal,
+    validityDate,
+    notes
+  } = req.body;
   const enquiry = await MultiEnquiry.findById(req.params.id);
 
   if (!enquiry) {
@@ -266,11 +325,18 @@ const saveMultiEnquiryQuotationDraft = asyncHandler(async (req, res) => {
   enquiry.finalQuotation = {
     products,
     subtotal,
+    discountType,
+    discountValue,
+    discountAmount,
+    taxableAmount,
+    gstRate: taxPercent,
     taxPercent,
+    cgstAmount,
+    sgstAmount,
     taxAmount,
     grandTotal,
     validityDate,
-    notes,
+    notes
   };
   
   const updatedEnquiry = await enquiry.save();
