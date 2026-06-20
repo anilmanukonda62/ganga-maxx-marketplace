@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, Eye, Mail, AlertTriangle, FileText, CheckCircle, Info } from 'lucide-react';
+import { X, Mail, AlertTriangle, FileText } from 'lucide-react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 
