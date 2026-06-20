@@ -142,7 +142,7 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="p-6 space-y-6">
-        <CardSkeleton count={6} />
+        <CardSkeleton count={8} />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="h-80 bg-white dark:bg-darkbg-800 rounded-2xl animate-pulse" />
           <div className="h-80 bg-white dark:bg-darkbg-800 rounded-2xl animate-pulse" />
@@ -211,12 +211,12 @@ const Dashboard = () => {
         </motion.button>
       </div>
 
-      {/* 6 StatCards */}
+      {/* 8 StatCards */}
       <motion.div 
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-6"
       >
         <motion.div variants={itemVariants}>
           <StatCard
@@ -244,6 +244,25 @@ const Dashboard = () => {
             color="red"
             link="/enquiries?status=New"
             highlight={stats?.newEnquiries > 0}
+          />
+        </motion.div>
+        <motion.div variants={itemVariants}>
+          <StatCard
+            title="Multi Enquiries"
+            value={stats?.totalMultiEnquiries || 0}
+            icon={ClipboardList}
+            color="purple"
+            link="/multi-enquiries"
+          />
+        </motion.div>
+        <motion.div variants={itemVariants}>
+          <StatCard
+            title="New Multi Enquiries"
+            value={stats?.newMultiEnquiries || 0}
+            icon={ClipboardList}
+            color="red"
+            link="/multi-enquiries?status=New"
+            highlight={stats?.newMultiEnquiries > 0}
           />
         </motion.div>
         <motion.div variants={itemVariants}>
