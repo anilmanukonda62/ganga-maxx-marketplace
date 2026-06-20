@@ -211,12 +211,12 @@ const Dashboard = () => {
         </motion.button>
       </div>
 
-      {/* 8 StatCards */}
+      {/* 8 StatCards in 2 rows of 4 on desktop */}
       <motion.div 
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-6"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
       >
         <motion.div variants={itemVariants}>
           <StatCard
