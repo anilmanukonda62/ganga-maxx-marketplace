@@ -1,7 +1,8 @@
 const MultiEnquiry = require('../models/MultiEnquiry');
 const asyncHandler = require('../utils/asyncHandler');
 const { validationResult } = require('express-validator');
-const { transporter, generateQuotationEmailHTML } = require('../utils/emailHelper');
+const { generateQuotationEmailHTML } = require('../utils/emailHelper');
+const sendEmailViaBrevo = require('../utils/sendEmailViaBrevo');
 
 /**
  * @desc    Submit a new multi-product enquiry
@@ -190,15 +191,12 @@ const sendMultiEnquiryQuotation = asyncHandler(async (req, res) => {
     notes
   );
 
-  const mailOptions = {
-    from: '"Ganga Maxx Commercial Sales" <anilkumarmanukonda07@gmail.com>',
-    to: enquiry.email,
-    subject: `Ganga Maxx Supply Quotation - Enquiry ID: ${enquiry._id}`,
-    html: emailHtml,
-  };
-
   try {
-    await transporter.sendMail(mailOptions);
+    await sendEmailViaBrevo({
+      to: enquiry.email,
+      subject: `Ganga Maxx Supply Quotation - Enquiry ID: ${enquiry._id}`,
+      htmlContent: emailHtml,
+    });
   } catch (error) {
     res.status(500);
     throw new Error(`Failed to send email: ${error.message}`);

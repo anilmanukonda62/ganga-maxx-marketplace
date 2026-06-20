@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
+const sendEmailViaBrevo = require('../utils/sendEmailViaBrevo');
 const Admin = require('../models/Admin');
 const Product = require('../models/Product');
 const Enquiry = require('../models/Enquiry');
@@ -11,14 +11,6 @@ const asyncHandler = require('../utils/asyncHandler');
 const otpStore = new Map();
 const changePasswordOtpStore = new Map();
 
-// Configure nodemailer transporter using Gmail SMTP
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: 'anilkumarmanukonda07@gmail.com',
-    pass: 'kgipxhcsqqjhtsnn',
-  },
-});
 
 /**
  * Generate a JWT token
@@ -170,7 +162,11 @@ const forgotPassword = asyncHandler(async (req, res) => {
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  await sendEmailViaBrevo({
+    to: mailOptions.to,
+    subject: mailOptions.subject,
+    htmlContent: mailOptions.html,
+  });
 
   res.json({
     success: true,
@@ -367,7 +363,11 @@ const changePasswordOtp = asyncHandler(async (req, res) => {
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  await sendEmailViaBrevo({
+    to: mailOptions.to,
+    subject: mailOptions.subject,
+    htmlContent: mailOptions.html,
+  });
 
   res.json({
     success: true,
