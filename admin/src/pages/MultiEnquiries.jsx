@@ -4,6 +4,7 @@ import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { TableSkeleton } from '../components/LoadingSkeleton';
 import ConfirmModal from '../components/ConfirmModal';
+import QuotationModal from '../components/QuotationModal';
 import { formatDate } from '../utils/helpers';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -22,11 +23,13 @@ import {
   Calendar,
   Hash,
   Printer,
-  FileText
+  FileText,
+  CheckCircle,
+  Package,
+  ClipboardList
 } from 'lucide-react';
-import QuotationModal from '../components/QuotationModal';
 
-const Enquiries = () => {
+const MultiEnquiries = () => {
   const [enquiries, setEnquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,12 +44,10 @@ const Enquiries = () => {
 
   // Modals state
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
-  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [quotationModalOpen, setQuotationModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [enquiryToDelete, setEnquiryToDelete] = useState(null);
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
-  const [quotationModalOpen, setQuotationModalOpen] = useState(false);
-  const [enquiryForQuotation, setEnquiryForQuotation] = useState(null);
 
   // Bulk actions states
   const [selectedIds, setSelectedIds] = useState([]);
@@ -75,12 +76,12 @@ const Enquiries = () => {
   const fetchEnquiries = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/enquiries');
+      const response = await api.get('/multi-enquiries');
       if (response.data.success) {
         setEnquiries(response.data.data);
       }
     } catch (error) {
-      toast.error('Failed to load enquiries');
+      toast.error('Failed to load multi-product enquiries');
       console.error(error);
     } finally {
       setLoading(false);
@@ -95,13 +96,12 @@ const Enquiries = () => {
   const handleStatusUpdate = async (id, newStatus) => {
     setUpdatingStatusId(id);
     try {
-      const response = await api.put(`/enquiries/${id}/status`, { status: newStatus });
+      const response = await api.put(`/multi-enquiries/${id}/status`, { status: newStatus });
       if (response.data.success) {
         toast.success(`Enquiry marked as ${newStatus}`);
         setEnquiries((prev) =>
           prev.map((e) => (e._id === id ? { ...e, status: newStatus } : e))
         );
-        // Also update detail modal if it's currently open
         if (selectedEnquiry && selectedEnquiry._id === id) {
           setSelectedEnquiry((prev) => ({ ...prev, status: newStatus }));
         }
@@ -128,14 +128,11 @@ const Enquiries = () => {
   const handleConfirmDelete = async () => {
     if (!enquiryToDelete) return;
     try {
-      const response = await api.delete(`/enquiries/${enquiryToDelete._id}`);
+      const response = await api.delete(`/multi-enquiries/${enquiryToDelete._id}`);
       if (response.data.success) {
         toast.success('Enquiry deleted successfully');
         setEnquiries((prev) => prev.filter((e) => e._id !== enquiryToDelete._id));
         setSelectedIds((prev) => prev.filter((id) => id !== enquiryToDelete._id));
-        if (selectedEnquiry?._id === enquiryToDelete._id) {
-          setDetailModalOpen(false);
-        }
       }
     } catch (error) {
       toast.error('Failed to delete enquiry');
@@ -165,7 +162,7 @@ const Enquiries = () => {
     const toastId = toast.loading(`Updating ${selectedIds.length} enquiries...`);
     try {
       await Promise.all(
-        selectedIds.map(id => api.put(`/enquiries/${id}/status`, { status: newStatus }))
+        selectedIds.map(id => api.put(`/multi-enquiries/${id}/status`, { status: newStatus }))
       );
       toast.success('Enquiries updated successfully!', { id: toastId });
       
@@ -184,7 +181,7 @@ const Enquiries = () => {
     const toastId = toast.loading(`Deleting ${selectedIds.length} enquiries...`);
     try {
       await Promise.all(
-        selectedIds.map(id => api.delete(`/enquiries/${id}`))
+        selectedIds.map(id => api.delete(`/multi-enquiries/${id}`))
       );
       toast.success('Enquiries deleted successfully!', { id: toastId });
       
@@ -199,10 +196,10 @@ const Enquiries = () => {
     }
   };
 
-  // View details
-  const openDetailModal = (enq) => {
+  // View details/Quotation builder
+  const openQuotationModal = (enq) => {
     setSelectedEnquiry(enq);
-    setDetailModalOpen(true);
+    setQuotationModalOpen(true);
   };
 
   // Handle Tab filter changes
@@ -213,7 +210,7 @@ const Enquiries = () => {
       searchParams.set('status', status);
     }
     setSearchParams(searchParams);
-    setCurrentPage(1); // Reset page to 1
+    setCurrentPage(1);
     setSelectedIds([]);
   };
 
@@ -229,7 +226,7 @@ const Enquiries = () => {
       e.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       e.phone.includes(searchQuery) ||
       (e.companyName && e.companyName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (e.productInterested && e.productInterested.toLowerCase().includes(searchQuery.toLowerCase()));
+      e.products.some(p => p.productName.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesStatus = statusFilter === 'All' || e.status === statusFilter;
 
@@ -242,15 +239,12 @@ const Enquiries = () => {
   const currentItems = filteredEnquiries.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredEnquiries.length / itemsPerPage);
 
-
-
-  // WhatsApp click generator
+  // WhatsApp link template
   const getWhatsAppLink = (enq) => {
     const cleanPhone = enq.phone.replace(/[^0-9]/g, '');
-    // Ensure 10-digit standard Indian phone format
     const prefix = cleanPhone.length === 10 ? '91' : '';
     const text = encodeURIComponent(
-      `Hi ${enq.fullName}, thank you for your enquiry about ${enq.productInterested || 'our products'}. We from Ganga Maxx Marketplace would like to assist you further.`
+      `Hi ${enq.fullName}, thank you for your multi-product enquiry. We from Ganga Maxx Marketplace would like to assist you further with a custom supply proposal.`
     );
     return `https://wa.me/${prefix}${cleanPhone}?text=${text}`;
   };
@@ -265,7 +259,7 @@ const Enquiries = () => {
             <p className="text-xs text-slate-500">Official Product Catalog Admin System</p>
           </div>
           <div className="text-right text-xs text-slate-500">
-            <p className="font-bold text-primary-600">Enquiries Report</p>
+            <p className="font-bold text-primary-600">Multi-Product Enquiries Report</p>
             <p>Generated: {new Date().toLocaleDateString('en-IN')}</p>
             <p>Filter Status: {statusFilter}</p>
           </div>
@@ -276,12 +270,12 @@ const Enquiries = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
         <div>
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Enquiries</h2>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Multi-Product Enquiries</h2>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 dark:bg-darkbg-700 text-slate-600 dark:text-slate-300">
               {filteredEnquiries.length} leads
             </span>
           </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Review, follow up, or manage catalog purchase leads.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Review multi-item cart enquiries, construct quotations, and track dispatch communication.</p>
         </div>
         <div className="flex gap-3 shrink-0">
           <motion.button
@@ -292,7 +286,6 @@ const Enquiries = () => {
             <Printer className="w-4 h-4" />
             Export PDF
           </motion.button>
-
         </div>
       </div>
 
@@ -322,7 +315,7 @@ const Enquiries = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search enquiries by name, company, or phone..."
+            placeholder="Search enquiries by name, company, or products..."
             className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-darkbg-800 border border-slate-200 dark:border-darkbg-700 focus:border-primary-500 dark:focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-slate-900 dark:text-white rounded-xl outline-none text-sm transition shadow-xs"
           />
         </div>
@@ -330,7 +323,7 @@ const Enquiries = () => {
 
       {/* Table Content */}
       {loading ? (
-        <TableSkeleton rows={10} cols={7} />
+        <TableSkeleton rows={10} cols={8} />
       ) : (
         <div className="bg-white dark:bg-darkbg-800 border border-slate-100 dark:border-darkbg-700 rounded-3xl shadow-sm overflow-hidden flex flex-col justify-between">
           <div className="overflow-x-auto">
@@ -359,10 +352,11 @@ const Enquiries = () => {
                     />
                   </th>
                   <th className="p-4">Date</th>
-                  <th className="p-4">Client Details</th>
+                  <th className="p-4">Customer</th>
                   <th className="p-4">Company</th>
-                  <th className="p-4">Interested Product</th>
-                  <th className="p-4">Status</th>
+                  <th className="p-4 text-center">Items</th>
+                  <th className="p-4 text-right">Est. Amount (₹)</th>
+                  <th className="p-4">Status & Channels</th>
                   <th className="p-4 text-center print:hidden">Actions</th>
                 </tr>
               </thead>
@@ -402,18 +396,15 @@ const Enquiries = () => {
                     <td className="p-4 text-slate-600 dark:text-slate-400 font-medium">
                       {enq.companyName}
                     </td>
-                    <td className="p-4">
-                      <div className="font-semibold text-slate-700 dark:text-slate-350 truncate max-w-[200px]" title={enq.productInterested}>
-                        {enq.productInterested || 'N/A'}
-                      </div>
-                      {enq.quantity && (
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                          Qty: {enq.quantity}
-                        </div>
-                      )}
+                    <td className="p-4 text-center font-bold text-slate-700 dark:text-slate-300">
+                      {enq.products.reduce((acc, p) => acc + p.quantity, 0)}
+                      <span className="text-[10px] text-slate-400 block font-normal">({enq.products.length} unique)</span>
+                    </td>
+                    <td className="p-4 text-right font-extrabold text-slate-800 dark:text-slate-200">
+                      ₹{(enq.finalQuotation?.grandTotal || enq.totalEstimatedAmount || 0).toLocaleString('en-IN')}
                     </td>
                     <td className="p-4">
-                      <div>
+                      <div className="flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
                           {/* Status Badge */}
                           <span
@@ -430,7 +421,7 @@ const Enquiries = () => {
                             {enq.status}
                           </span>
 
-                          {/* Status Quick Update */}
+                          {/* Quick Status Select */}
                           <select
                             disabled={updatingStatusId === enq._id}
                             value={enq.status}
@@ -444,24 +435,16 @@ const Enquiries = () => {
                           </select>
                         </div>
                         
-                        {/* Channels Sent Status for Quoted */}
-                        {enq.status === 'Quoted' && (
-                          <div className="flex items-center gap-1.5 mt-1 ml-1 select-none">
-                            <MessageCircle 
-                              className={`w-3.5 h-3.5 ${enq.whatsappSent ? 'text-emerald-500' : 'text-slate-350 dark:text-slate-605'}`} 
-                              title={enq.whatsappSent ? 'Quotation sent via WhatsApp' : 'Quotation not sent via WhatsApp'}
-                            />
-                            <Mail 
-                              className={`w-3.5 h-3.5 ${enq.emailSent ? 'text-emerald-500' : 'text-slate-350 dark:text-slate-605'}`} 
-                              title={enq.emailSent ? 'Quotation sent via Email' : 'Quotation not sent via Email'}
-                            />
-                          </div>
-                        )}
+                        {/* Channel icons */}
+                        <div className="flex items-center gap-2 text-slate-400">
+                          <MessageCircle className={`w-4 h-4 ${enq.whatsappSent ? 'text-emerald-500 fill-emerald-100/10' : 'text-slate-300 dark:text-slate-600'}`} title={enq.whatsappSent ? 'WhatsApp: Sent' : 'WhatsApp: Not Sent'} />
+                          <Mail className={`w-4 h-4 ${enq.emailSent ? 'text-primary-500 fill-primary-100/10' : 'text-slate-300 dark:text-slate-600'}`} title={enq.emailSent ? 'Email: Sent' : 'Email: Not Sent'} />
+                        </div>
                       </div>
                     </td>
                     <td className="p-4 text-center print:hidden">
                       <div className="flex items-center justify-center gap-2">
-                        {/* Call Button */}
+                        {/* Phone action */}
                         <motion.a
                           href={`tel:${enq.phone}`}
                           whileHover={{ scale: 1.02 }}
@@ -470,38 +453,30 @@ const Enquiries = () => {
                         >
                           <Phone className="w-4.5 h-4.5" />
                         </motion.a>
-                        {/* WhatsApp Button */}
+
+                        {/* WhatsApp action */}
                         <motion.a
                           href={getWhatsAppLink(enq)}
                           target="_blank"
                           rel="noopener noreferrer"
                           whileHover={{ scale: 1.02 }}
                           className="p-1.5 rounded-lg border border-slate-250 dark:border-darkbg-700 text-slate-500 hover:text-emerald-500 hover:border-emerald-250 dark:hover:border-emerald-950 hover:bg-emerald-50 dark:hover:bg-darkbg-900 transition cursor-pointer"
-                          title="Reply via WhatsApp"
+                          title="WhatsApp Reply"
                         >
                           <MessageCircle className="w-4.5 h-4.5" />
                         </motion.a>
-                        {/* Create Quotation Button */}
+
+                        {/* Quotation Builder Button */}
                         <motion.button
-                          onClick={() => {
-                            setEnquiryForQuotation(enq);
-                            setQuotationModalOpen(true);
-                          }}
+                          onClick={() => openQuotationModal(enq)}
                           whileHover={{ scale: 1.02 }}
-                          className="p-1.5 rounded-lg border border-slate-250 dark:border-darkbg-700 text-slate-500 hover:text-blue-500 hover:border-blue-250 dark:hover:border-blue-950 hover:bg-blue-50/50 dark:hover:bg-darkbg-900 transition cursor-pointer"
-                          title="Create Quotation"
+                          className="p-1.5 rounded-lg border border-slate-250 dark:border-darkbg-700 text-slate-500 hover:text-primary-500 hover:border-primary-250 dark:hover:border-primary-950 hover:bg-slate-50 dark:hover:bg-darkbg-900 transition cursor-pointer flex items-center gap-1 font-bold text-xs"
+                          title="Build Quote"
                         >
                           <FileText className="w-4.5 h-4.5" />
+                          Quote
                         </motion.button>
-                        {/* View Details Button */}
-                        <motion.button
-                          onClick={() => openDetailModal(enq)}
-                          whileHover={{ scale: 1.02 }}
-                          className="p-1.5 rounded-lg border border-slate-250 dark:border-darkbg-700 text-slate-500 hover:text-primary-500 hover:border-primary-250 dark:hover:border-primary-950 hover:bg-slate-50 dark:hover:bg-darkbg-900 transition cursor-pointer"
-                          title="View Details"
-                        >
-                          <Eye className="w-4.5 h-4.5" />
-                        </motion.button>
+
                         {/* Delete Button */}
                         <motion.button
                           onClick={() => openDeleteModal(enq)}
@@ -517,10 +492,10 @@ const Enquiries = () => {
                 ))}
                 {filteredEnquiries.length === 0 && (
                   <tr>
-                    <td colSpan="6" className="p-12 text-center">
+                    <td colSpan="8" className="p-12 text-center">
                       <div className="flex flex-col items-center justify-center text-slate-400 gap-2">
                         <AlertCircle className="w-8 h-8" />
-                        <span>No enquiries found matching query criteria.</span>
+                        <span>No multi-product enquiries found.</span>
                       </div>
                     </td>
                   </tr>
@@ -573,220 +548,26 @@ const Enquiries = () => {
         </div>
       )}
 
-      {/* Details View Modal */}
-      <AnimatePresence>
-        {detailModalOpen && selectedEnquiry && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setDetailModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-            />
+      {/* Quotation Builder Modal */}
+      <QuotationModal
+        isOpen={quotationModalOpen}
+        onClose={() => {
+          setQuotationModalOpen(false);
+          setSelectedEnquiry(null);
+        }}
+        enquiry={selectedEnquiry}
+        type="multi"
+        onQuoted={(updatedEnq) => {
+          setEnquiries(prev => prev.map(e => e._id === updatedEnq._id ? updatedEnq : e));
+          setSelectedEnquiry(updatedEnq);
+        }}
+      />
 
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ type: 'spring', duration: 0.3 }}
-              className="relative w-full max-w-2xl bg-white dark:bg-darkbg-800 border border-slate-100 dark:border-darkbg-700 rounded-3xl shadow-xl z-10 overflow-hidden"
-            >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-darkbg-700 px-6 py-4">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Hash className="w-4 h-4 text-primary-500" />
-                Enquiry Details
-              </h3>
-              <button
-                onClick={() => setDetailModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-darkbg-900 transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Client Name */}
-                <div className="flex items-start gap-3 p-3 rounded-2xl border border-slate-100 dark:border-darkbg-750 bg-slate-50/50 dark:bg-darkbg-900/10">
-                  <User className="w-5 h-5 text-slate-400 mt-0.5" />
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Client Full Name</span>
-                    <p className="text-sm font-semibold text-slate-800 dark:text-white">{selectedEnquiry.fullName}</p>
-                  </div>
-                </div>
-
-                {/* Company Name */}
-                <div className="flex items-start gap-3 p-3 rounded-2xl border border-slate-100 dark:border-darkbg-750 bg-slate-50/50 dark:bg-darkbg-900/10">
-                  <Building2 className="w-5 h-5 text-slate-400 mt-0.5" />
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Company Name</span>
-                    <p className="text-sm font-semibold text-slate-800 dark:text-white">{selectedEnquiry.companyName}</p>
-                  </div>
-                </div>
-
-                {/* Phone */}
-                <div className="flex items-start gap-3 p-3 rounded-2xl border border-slate-100 dark:border-darkbg-750 bg-slate-50/50 dark:bg-darkbg-900/10">
-                  <Phone className="w-5 h-5 text-slate-400 mt-0.5" />
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Phone Number</span>
-                    <p className="text-sm font-semibold text-slate-800 dark:text-white font-mono">{selectedEnquiry.phone}</p>
-                  </div>
-                </div>
-
-                {/* Email */}
-                <div className="flex items-start gap-3 p-3 rounded-2xl border border-slate-100 dark:border-darkbg-750 bg-slate-50/50 dark:bg-darkbg-900/10">
-                  <Mail className="w-5 h-5 text-slate-400 mt-0.5" />
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Email Address</span>
-                    <p className="text-sm font-semibold text-slate-800 dark:text-white">{selectedEnquiry.email || 'N/A'}</p>
-                  </div>
-                </div>
-
-                {/* Product Interested */}
-                <div className="flex items-start gap-3 p-3 rounded-2xl border border-slate-100 dark:border-darkbg-750 bg-slate-50/50 dark:bg-darkbg-900/10">
-                  <User className="w-5 h-5 text-slate-400 mt-0.5" />
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Interested Product</span>
-                    <p className="text-sm font-semibold text-slate-800 dark:text-white">{selectedEnquiry.productInterested || 'N/A'}</p>
-                  </div>
-                </div>
-
-                {/* Quantity */}
-                <div className="flex items-start gap-3 p-3 rounded-2xl border border-slate-100 dark:border-darkbg-750 bg-slate-50/50 dark:bg-darkbg-900/10">
-                  <Hash className="w-5 h-5 text-slate-400 mt-0.5" />
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Order Quantity</span>
-                    <p className="text-sm font-semibold text-slate-800 dark:text-white">{selectedEnquiry.quantity || 'N/A'}</p>
-                  </div>
-                </div>
-
-                {/* Created At */}
-                <div className="flex items-start gap-3 p-3 rounded-2xl border border-slate-100 dark:border-darkbg-750 bg-slate-50/50 dark:bg-darkbg-900/10">
-                  <Calendar className="w-5 h-5 text-slate-400 mt-0.5" />
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Submission Date</span>
-                    <p className="text-sm font-semibold text-slate-800 dark:text-white">{formatDate(selectedEnquiry.createdAt)}</p>
-                  </div>
-                </div>
-
-                {/* Status Selection */}
-                <div className="flex items-start gap-3 p-3 rounded-2xl border border-slate-100 dark:border-darkbg-750 bg-slate-50/50 dark:bg-darkbg-900/10 col-span-1 md:col-span-2">
-                  <Calendar className="w-5 h-5 text-slate-400 mt-0.5" />
-                  <div className="flex-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Process Status</span>
-                    <div className="mt-1 flex flex-wrap items-center gap-3">
-                      <span
-                        className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0 ${
-                          selectedEnquiry.status === 'New'
-                            ? 'bg-red-50 text-red-600 dark:bg-red-950/20 dark:text-red-400'
-                            : selectedEnquiry.status === 'Quoted'
-                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400'
-                            : selectedEnquiry.status === 'Contacted'
-                            ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/20 dark:text-amber-400'
-                            : 'bg-green-50 text-green-600 dark:bg-green-950/20 dark:text-green-400'
-                        }`}
-                      >
-                        {selectedEnquiry.status}
-                      </span>
-                      <select
-                        value={selectedEnquiry.status}
-                        onChange={(e) => handleStatusUpdate(selectedEnquiry._id, e.target.value)}
-                        className="text-xs bg-white dark:bg-darkbg-900 border border-slate-200 dark:border-darkbg-700 text-slate-500 rounded-md p-1 outline-none hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
-                      >
-                        <option value="New">New</option>
-                        <option value="Quoted">Quoted</option>
-                        <option value="Contacted">Contacted</option>
-                        <option value="Closed">Closed</option>
-                      </select>
-                      
-                      {/* Channels Sent Status for Quoted */}
-                      {selectedEnquiry.status === 'Quoted' && (
-                        <div className="flex gap-2">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${
-                            selectedEnquiry.whatsappSent 
-                              ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400'
-                              : 'bg-slate-100 text-slate-400 dark:bg-darkbg-700 dark:text-slate-500'
-                          }`}>
-                            <MessageCircle className="w-3.5 h-3.5" />
-                            WhatsApp: {selectedEnquiry.whatsappSent ? 'Sent' : 'Not Sent'}
-                          </span>
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${
-                            selectedEnquiry.emailSent 
-                              ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400'
-                              : 'bg-slate-100 text-slate-400 dark:bg-darkbg-700 dark:text-slate-500'
-                          }`}>
-                            <Mail className="w-3.5 h-3.5" />
-                            Email: {selectedEnquiry.emailSent ? 'Sent' : 'Not Sent'}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Message Details */}
-              <div className="space-y-1.5 p-4 rounded-2xl border border-slate-100 dark:border-darkbg-750 bg-slate-50/30 dark:bg-darkbg-900/5">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Client Message</span>
-                <p className="text-sm text-slate-700 dark:text-slate-350 leading-relaxed whitespace-pre-wrap">
-                  {selectedEnquiry.message || 'No additional message was submitted.'}
-                </p>
-              </div>
-            </div>
-
-            {/* Modal Footer Actions */}
-            <div className="flex justify-between items-center bg-slate-50 dark:bg-darkbg-900 px-6 py-4 border-t border-slate-100 dark:border-darkbg-700">
-              <button
-                onClick={() => openDeleteModal(selectedEnquiry)}
-                className="flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-600 transition"
-              >
-                <Trash2 className="w-4.5 h-4.5" />
-                Delete Lead
-              </button>
-              <div className="flex items-center gap-2">
-                {/* Create Quotation Button */}
-                <button
-                  onClick={() => {
-                    setEnquiryForQuotation(selectedEnquiry);
-                    setQuotationModalOpen(true);
-                  }}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer"
-                >
-                  <FileText className="w-4 h-4" />
-                  Create Quotation
-                </button>
-                <a
-                  href={`tel:${selectedEnquiry.phone}`}
-                  className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 dark:border-darkbg-700 rounded-xl hover:bg-slate-100 dark:hover:bg-darkbg-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition"
-                >
-                  <Phone className="w-4 h-4" />
-                  Call Client
-                </a>
-                <a
-                  href={getWhatsAppLink(selectedEnquiry)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl transition shadow-sm"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  WhatsApp
-                </a>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
-      </AnimatePresence>
-
-      {/* Delete Confirmation */}
+      {/* Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={deleteModalOpen}
         title="Delete Enquiry"
-        message="Are you sure you want to permanently delete this lead? This cannot be undone."
+        message="Are you sure you want to permanently delete this multi-product lead? This cannot be undone."
         confirmText="Confirm Delete"
         cancelText="Cancel"
         onConfirm={handleConfirmDelete}
@@ -840,30 +621,15 @@ const Enquiries = () => {
       {/* Bulk Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={bulkDeleteModalOpen}
-        title="Confirm Bulk Deletion"
-        message={`Are you sure you want to permanently delete ${selectedIds.length} selected leads? This action cannot be undone.`}
+        title="Delete Multiple Leads"
+        message={`Are you sure you want to permanently delete these ${selectedIds.length} leads? This cannot be undone.`}
         confirmText="Yes, Delete All"
         cancelText="Cancel"
         onConfirm={executeBulkDelete}
         onCancel={() => setBulkDeleteModalOpen(false)}
       />
-
-      <QuotationModal
-        isOpen={quotationModalOpen}
-        onClose={() => setQuotationModalOpen(false)}
-        enquiry={enquiryForQuotation}
-        type="single"
-        onQuoted={(updatedEnq) => {
-          setEnquiries((prev) =>
-            prev.map((e) => (e._id === updatedEnq._id ? updatedEnq : e))
-          );
-          if (selectedEnquiry && selectedEnquiry._id === updatedEnq._id) {
-            setSelectedEnquiry(updatedEnq);
-          }
-        }}
-      />
     </div>
   );
 };
 
-export default Enquiries;
+export default MultiEnquiries;

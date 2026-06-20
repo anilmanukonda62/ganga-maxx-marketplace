@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, AlertCircle, CheckCircle, Info, Send, PhoneCall } from 'lucide-react';
+import { ArrowLeft, AlertCircle, CheckCircle, Info, Send, PhoneCall, Plus, Minus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useProducts } from '../hooks/useProducts';
+import { useEnquiryList } from '../context/EnquiryListContext';
 import { ProductCard } from '../components/ProductCard';
 
 const recommendationRules = {
@@ -17,6 +18,8 @@ export const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getProductById, getRelatedProducts, categories, products, loading, error, retryFetch } = useProducts();
+  const { addToEnquiryList } = useEnquiryList();
+  const [quantity, setQuantity] = useState(1);
 
   const product = getProductById(id);
 
@@ -258,6 +261,30 @@ export const ProductDetail = () => {
             </div>
           </div>
 
+          {/* Quantity Selector */}
+          {!isOutOfStock && (
+            <div className="flex items-center gap-4 mb-6">
+              <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Quantity Required:</span>
+              <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-1">
+                <button
+                  type="button"
+                  onClick={() => setQuantity(prev => Math.max(prev - 1, 1))}
+                  className="h-8 w-8 flex items-center justify-center bg-white dark:bg-slate-800 hover:bg-slate-100 rounded-lg text-slate-600 dark:text-slate-300 transition cursor-pointer"
+                >
+                  <Minus size={14} />
+                </button>
+                <span className="text-sm font-black text-slate-800 dark:text-white w-8 text-center">{quantity}</span>
+                <button
+                  type="button"
+                  onClick={() => setQuantity(prev => prev + 1)}
+                  className="h-8 w-8 flex items-center justify-center bg-white dark:bg-slate-800 hover:bg-slate-100 rounded-lg text-slate-600 dark:text-slate-300 transition cursor-pointer"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Action buttons area */}
           <div>
             {isOutOfStock ? (
@@ -277,13 +304,24 @@ export const ProductDetail = () => {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={handleEnquiryRedirect}
-                className="w-full flex items-center justify-center gap-2 py-4 bg-brand-600 hover:bg-brand-700 dark:bg-brand-700 dark:hover:bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-600/10 hover:shadow-brand-600/25 transition-all duration-205 active:scale-95 cursor-pointer"
-              >
-                <Send size={16} />
-                Enquire Now
-              </button>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={handleEnquiryRedirect}
+                  className="flex-1 flex items-center justify-center gap-2 py-4 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold rounded-xl shadow transition-all duration-200 active:scale-95 cursor-pointer"
+                >
+                  <Send size={16} />
+                  Enquire Now
+                </button>
+                <button
+                  onClick={() => {
+                    addToEnquiryList(product, selectedVariant, quantity);
+                    setQuantity(1);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 py-4 bg-brand-600 hover:bg-brand-700 dark:bg-brand-700 dark:hover:bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-600/10 hover:shadow-brand-600/25 transition-all duration-200 active:scale-95 cursor-pointer"
+                >
+                  Add to Enquiry List
+                </button>
+              </div>
             )}
           </div>
         </div>

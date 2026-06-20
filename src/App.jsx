@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowUp } from 'lucide-react';
 import { ThemeProvider } from './context/ThemeContext';
+import { EnquiryListProvider } from './context/EnquiryListContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { Home } from './pages/Home';
@@ -11,6 +12,8 @@ import { ProductDetail } from './pages/ProductDetail';
 import { AboutUs } from './pages/AboutUs';
 import { Contact } from './pages/Contact';
 import { Enquiry } from './pages/Enquiry';
+import { MultiEnquiry } from './pages/MultiEnquiry';
+import { EnquiryListWidget } from './components/EnquiryListWidget';
 
 // ScrollToTop helper component to reset scroll position on page change
 const ScrollToTop = () => {
@@ -111,6 +114,14 @@ function AppContent() {
               </PageWrapper>
             }
           />
+          <Route
+            path="/multi-enquiry"
+            element={
+              <PageWrapper>
+                <MultiEnquiry />
+              </PageWrapper>
+            }
+          />
           {/* Catch-all Redirect */}
           <Route
             path="*"
@@ -124,6 +135,7 @@ function AppContent() {
       </AnimatePresence>
 
       <Footer />
+      <EnquiryListWidget />
 
       {/* Back to Top Button */}
       <AnimatePresence>
@@ -148,9 +160,11 @@ function AppContent() {
 function App() {
   return (
     <ThemeProvider>
-      <Router>
-        <AppContent />
-      </Router>
+      <EnquiryListProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </EnquiryListProvider>
     </ThemeProvider>
   );
 }

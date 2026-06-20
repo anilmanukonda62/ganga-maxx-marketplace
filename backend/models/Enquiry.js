@@ -38,10 +38,30 @@ const enquirySchema = new mongoose.Schema(
       type: String,
       required: [true, 'Enquiry status is required'],
       enum: {
-        values: ['New', 'Contacted', 'Closed'],
+        values: ['New', 'Quoted', 'Contacted', 'Closed'],
         message: '{VALUE} is not a valid enquiry status',
       },
       default: 'New',
+    },
+    whatsappSent: { type: Boolean, default: false },
+    emailSent: { type: Boolean, default: false },
+    quotationSentAt: Date,
+    finalQuotation: {
+      products: [{
+        productId: Number,
+        productName: String,
+        variant: String,
+        available: Boolean,
+        unitPrice: Number,
+        quantity: Number,
+        lineTotal: Number
+      }],
+      subtotal: Number,
+      taxPercent: Number,
+      taxAmount: Number,
+      grandTotal: Number,
+      validityDate: Date,
+      notes: String
     },
   },
   {

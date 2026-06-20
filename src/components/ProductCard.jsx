@@ -1,17 +1,26 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Tag, AlertCircle } from 'lucide-react';
+import { Tag, AlertCircle, Plus, Check } from 'lucide-react';
 import { useProducts } from '../hooks/useProducts';
+import { useEnquiryList } from '../context/EnquiryListContext';
 
 export const ProductCard = ({ product }) => {
   const navigate = useNavigate();
   const { categories } = useProducts();
+  const { enquiryItems, addToEnquiryList, removeFromEnquiryList } = useEnquiryList();
 
   const categoryObj = categories.find((c) => c.id === product.category);
   const isOutOfStock = product.stock.status === 'out_of_stock';
   const isLowStock = product.stock.status === 'low_stock';
   const stockCount = product.stock.count;
+
+  const firstVariant = product.variants && product.variants.length > 0 ? product.variants[0] : null;
+  const firstVariantLabel = firstVariant ? firstVariant.label : 'Default';
+
+  const isInList = enquiryItems.some(
+    (item) => item.productId === product.id && item.selectedVariant === firstVariantLabel
+  );
 
   // Determine starting price from variants if multiple exist
   const hasMultipleVariants = product.variants && product.variants.length > 1;
@@ -38,6 +47,29 @@ export const ProductCard = ({ product }) => {
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
         />
+        
+        {/* Floating Add-to-Enquiry Button */}
+        {!isOutOfStock && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isInList) {
+                removeFromEnquiryList(product.id, firstVariantLabel);
+              } else {
+                addToEnquiryList(product, firstVariant, 1);
+              }
+            }}
+            className={`absolute top-3 right-3 h-8 w-8 rounded-full flex items-center justify-center shadow-md transition-all duration-200 z-10 cursor-pointer ${
+              isInList
+                ? 'bg-brand-600 hover:bg-brand-700 text-white'
+                : 'bg-white/90 hover:bg-white text-slate-700 hover:text-brand-600 border border-slate-100'
+            }`}
+            title={isInList ? 'Remove from Enquiry List' : 'Add to Enquiry List'}
+          >
+            {isInList ? <Check size={16} /> : <Plus size={16} />}
+          </button>
+        )}
+
         {isOutOfStock && (
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] flex items-center justify-center">
             <span className="bg-red-600 text-white text-sm font-semibold tracking-wider uppercase px-4 py-2 rounded-full shadow-md animate-pulse">

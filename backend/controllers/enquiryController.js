@@ -1,6 +1,7 @@
 const Enquiry = require('../models/Enquiry');
 const asyncHandler = require('../utils/asyncHandler');
 const { validationResult } = require('express-validator');
+const { transporter, generateQuotationEmailHTML } = require('../utils/emailHelper');
 
 /**
  * @desc    Submit a new enquiry
@@ -146,10 +147,137 @@ const deleteEnquiry = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Mark a single enquiry's whatsapp as sent and update status to Quoted
+ * @route   PUT /api/enquiries/:id/mark-whatsapp-sent
+ * @access  Private
+ */
+const markEnquiryWhatsappSent = asyncHandler(async (req, res) => {
+  const enquiry = await Enquiry.findById(req.params.id);
+
+  if (!enquiry) {
+    res.status(404);
+    throw new Error('Enquiry not found');
+  }
+
+  enquiry.whatsappSent = true;
+  enquiry.status = 'Quoted';
+  const updatedEnquiry = await enquiry.save();
+
+  res.json({
+    success: true,
+    message: 'Enquiry WhatsApp send tracked successfully',
+    data: updatedEnquiry,
+  });
+});
+
+/**
+ * @desc    Send email quotation to a customer for a single enquiry
+ * @route   POST /api/enquiries/:id/send-quotation
+ * @access  Private
+ */
+const sendEnquiryQuotation = asyncHandler(async (req, res) => {
+  const { products, subtotal, taxPercent, taxAmount, grandTotal, validityDate, notes } = req.body;
+
+  const enquiry = await Enquiry.findById(req.params.id);
+
+  if (!enquiry) {
+    res.status(404);
+    throw new Error('Enquiry not found');
+  }
+
+  if (!enquiry.email) {
+    res.status(400);
+    throw new Error('Customer does not have a registered email address');
+  }
+
+  const emailHtml = generateQuotationEmailHTML(
+    enquiry.fullName,
+    products,
+    subtotal,
+    taxPercent,
+    taxAmount,
+    grandTotal,
+    validityDate,
+    notes
+  );
+
+  const mailOptions = {
+    from: '"Ganga Maxx Commercial Sales" <anilkumarmanukonda07@gmail.com>',
+    to: enquiry.email,
+    subject: `Ganga Maxx Supply Quotation - Enquiry ID: ${enquiry._id}`,
+    html: emailHtml,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    res.status(500);
+    throw new Error(`Failed to send email: ${error.message}`);
+  }
+
+  enquiry.emailSent = true;
+  enquiry.quotationSentAt = new Date();
+  enquiry.finalQuotation = {
+    products,
+    subtotal,
+    taxPercent,
+    taxAmount,
+    grandTotal,
+    validityDate,
+    notes,
+  };
+  enquiry.status = 'Quoted';
+  
+  const updatedEnquiry = await enquiry.save();
+
+  res.json({
+    success: true,
+    message: 'Quotation email sent successfully',
+    data: updatedEnquiry,
+  });
+});
+
+/**
+ * @desc    Save a quotation draft for a single enquiry without sending
+ * @route   PUT /api/enquiries/:id/quotation-draft
+ * @access  Private
+ */
+const saveEnquiryQuotationDraft = asyncHandler(async (req, res) => {
+  const { products, subtotal, taxPercent, taxAmount, grandTotal, validityDate, notes } = req.body;
+  const enquiry = await Enquiry.findById(req.params.id);
+
+  if (!enquiry) {
+    res.status(404);
+    throw new Error('Enquiry not found');
+  }
+
+  enquiry.finalQuotation = {
+    products,
+    subtotal,
+    taxPercent,
+    taxAmount,
+    grandTotal,
+    validityDate,
+    notes,
+  };
+  
+  const updatedEnquiry = await enquiry.save();
+
+  res.json({
+    success: true,
+    message: 'Quotation draft saved successfully',
+    data: updatedEnquiry,
+  });
+});
+
 module.exports = {
   createEnquiry,
   getEnquiries,
   getEnquiryById,
   updateEnquiryStatus,
   deleteEnquiry,
+  markEnquiryWhatsappSent,
+  sendEnquiryQuotation,
+  saveEnquiryQuotationDraft,
 };

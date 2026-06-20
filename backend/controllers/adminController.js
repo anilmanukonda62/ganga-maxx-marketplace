@@ -3,6 +3,7 @@ const nodemailer = require('nodemailer');
 const Admin = require('../models/Admin');
 const Product = require('../models/Product');
 const Enquiry = require('../models/Enquiry');
+const MultiEnquiry = require('../models/MultiEnquiry');
 const ContactMessage = require('../models/ContactMessage');
 const asyncHandler = require('../utils/asyncHandler');
 
@@ -89,6 +90,8 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     outOfStockProducts,
     totalContactMessages,
     newContactMessages,
+    totalMultiEnquiries,
+    newMultiEnquiries,
   ] = await Promise.all([
     Product.countDocuments(),
     Enquiry.countDocuments(),
@@ -97,6 +100,8 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     Product.countDocuments({ 'stock.status': 'out_of_stock' }),
     ContactMessage.countDocuments(),
     ContactMessage.countDocuments({ status: 'New' }),
+    MultiEnquiry.countDocuments(),
+    MultiEnquiry.countDocuments({ status: 'New' }),
   ]);
 
   res.json({
@@ -109,6 +114,8 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       outOfStockProducts,
       totalContactMessages,
       newContactMessages,
+      totalMultiEnquiries,
+      newMultiEnquiries,
     },
   });
 });

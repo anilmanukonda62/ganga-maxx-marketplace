@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, Sun, Moon, Send } from 'lucide-react';
+import { Menu, X, Sun, Moon, Send, ClipboardList } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useEnquiryList } from '../context/EnquiryListContext';
 import productsData from '../data/products.json';
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { enquiryItems } = useEnquiryList();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const totalItems = enquiryItems.reduce((acc, item) => acc + item.quantity, 0);
+  const hasItems = enquiryItems.length > 0;
 
   // Listen to scroll to apply sticky styles (shadow + backdrop blur)
   useEffect(() => {
@@ -36,6 +41,10 @@ export const Navbar = () => {
     { name: 'Contact', path: '/contact' },
     { name: 'Enquiry', path: '/enquiry' },
   ];
+
+  if (hasItems) {
+    navLinks.push({ name: `Enquiry List (${totalItems})`, path: '/multi-enquiry' });
+  }
 
   return (
     <header

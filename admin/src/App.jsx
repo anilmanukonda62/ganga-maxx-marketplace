@@ -16,6 +16,7 @@ import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
 import AddEditProduct from './pages/AddEditProduct';
 import Enquiries from './pages/Enquiries';
+import MultiEnquiries from './pages/MultiEnquiries';
 import ContactMessages from './pages/ContactMessages';
 import Settings from './pages/Settings';
 import Analytics from './pages/Analytics';
@@ -99,6 +100,7 @@ function AppContent() {
             <Route path="products/add" element={<PageTransition><AddEditProduct /></PageTransition>} />
             <Route path="products/edit/:id" element={<PageTransition><AddEditProduct /></PageTransition>} />
             <Route path="enquiries" element={<PageTransition><Enquiries /></PageTransition>} />
+            <Route path="multi-enquiries" element={<PageTransition><MultiEnquiries /></PageTransition>} />
             <Route path="contact" element={<PageTransition><ContactMessages /></PageTransition>} />
             <Route path="settings" element={<PageTransition><Settings /></PageTransition>} />
           </Route>
