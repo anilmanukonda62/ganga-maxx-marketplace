@@ -13,7 +13,7 @@ const axios = require('axios');
  * @param {string} notesInput - Notes/terms (optional)
  * @returns {Promise<Buffer>} - Resolves to the PDF buffer
  */
-const generateQuotationPDF = (enquiry, productsInput, subtotalInput, taxPercentInput, taxAmountInput, grandTotalInput, validityDateInput, notesInput) => {
+const generateQuotationPDF = (enquiry, productsInput, subtotalInput, taxPercentInput, taxAmountInput, grandTotalInput, validityDateInput, notesInput, discountTypeInput, discountValueInput, discountAmountInput, taxableAmountInput, cgstAmountInput, sgstAmountInput) => {
   return new Promise(async (resolve, reject) => {
     try {
       // 1. Resolve inputs with fallback for single object input or positional arguments
@@ -29,13 +29,13 @@ const generateQuotationPDF = (enquiry, productsInput, subtotalInput, taxPercentI
       const notes = notesInput !== undefined ? notesInput : (data.notes !== undefined ? data.notes : (enquiry && enquiry.finalQuotation && enquiry.finalQuotation.notes) || '');
       
       // Additional optional fields for complete compatibility
-      const discountType = data.discountType || (enquiry && enquiry.finalQuotation && enquiry.finalQuotation.discountType) || null;
-      const discountValue = data.discountValue !== undefined ? data.discountValue : (enquiry && enquiry.finalQuotation && enquiry.finalQuotation.discountValue) || 0;
-      const discountAmount = data.discountAmount !== undefined ? data.discountAmount : (enquiry && enquiry.finalQuotation && enquiry.finalQuotation.discountAmount) || 0;
+      const discountType = discountTypeInput !== undefined ? discountTypeInput : (data.discountType || (enquiry && enquiry.finalQuotation && enquiry.finalQuotation.discountType) || 'percentage');
+      const discountValue = discountValueInput !== undefined ? discountValueInput : (data.discountValue !== undefined ? data.discountValue : (enquiry && enquiry.finalQuotation && enquiry.finalQuotation.discountValue) || 0);
+      const discountAmount = discountAmountInput !== undefined ? discountAmountInput : (data.discountAmount !== undefined ? data.discountAmount : (enquiry && enquiry.finalQuotation && enquiry.finalQuotation.discountAmount) || 0);
       
-      const taxableAmount = data.taxableAmount !== undefined ? data.taxableAmount : (enquiry && enquiry.finalQuotation && enquiry.finalQuotation.taxableAmount) || (subtotal - discountAmount);
-      const cgstAmount = data.cgstAmount !== undefined ? data.cgstAmount : (enquiry && enquiry.finalQuotation && enquiry.finalQuotation.cgstAmount) || (taxAmount / 2);
-      const sgstAmount = data.sgstAmount !== undefined ? data.sgstAmount : (enquiry && enquiry.finalQuotation && enquiry.finalQuotation.sgstAmount) || (taxAmount / 2);
+      const taxableAmount = taxableAmountInput !== undefined ? taxableAmountInput : (data.taxableAmount !== undefined ? data.taxableAmount : (enquiry && enquiry.finalQuotation && enquiry.finalQuotation.taxableAmount) || (subtotal - discountAmount));
+      const cgstAmount = cgstAmountInput !== undefined ? cgstAmountInput : (data.cgstAmount !== undefined ? data.cgstAmount : (enquiry && enquiry.finalQuotation && enquiry.finalQuotation.cgstAmount) || (taxAmount / 2));
+      const sgstAmount = sgstAmountInput !== undefined ? sgstAmountInput : (data.sgstAmount !== undefined ? data.sgstAmount : (enquiry && enquiry.finalQuotation && enquiry.finalQuotation.sgstAmount) || (taxAmount / 2));
       
       const quotationNumber = data.quotationNumber || (enquiry && enquiry.finalQuotation && enquiry.finalQuotation.quotationNumber) || (enquiry && enquiry._id ? `GMX-QT-${enquiry._id.toString().substring(0, 8).toUpperCase()}` : `GMX-QT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-001`);
       
@@ -49,12 +49,12 @@ const generateQuotationPDF = (enquiry, productsInput, subtotalInput, taxPercentI
         console.warn('Failed to fetch company logo from Cloudinary:', logoErr.message);
       }
 
-      // Helper: Format Currency (Indian format: lakh/crore commas, e.g. ₹X,XX,XXX.XX)
+      // Helper: Format Currency (Indian format: lakh/crore commas, e.g. Rs. X,XX,XXX.XX)
       const formatCurrency = (amount) => {
         if (amount === undefined || amount === null || isNaN(amount)) {
-          return '₹0.00';
+          return 'Rs. 0.00';
         }
-        return '₹' + Number(amount).toLocaleString('en-IN', {
+        return 'Rs. ' + Number(amount).toLocaleString('en-IN', {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2
         });
@@ -124,11 +124,11 @@ const generateQuotationPDF = (enquiry, productsInput, subtotalInput, taxPercentI
         d.font('Helvetica-Bold').fontSize(10).fillColor('#16703F').text(item.quantity.toString(), 340, textY - 0.5, { width: 50, align: 'center' });
         
         // Unit Price (medium gray text, formatted currency)
-        d.font('Helvetica').fontSize(9).fillColor('#6B7280').text(formatCurrency(item.unitPrice).replace('₹', '₹ '), 390, textY, { width: 70, align: 'right' });
+        d.font('Helvetica').fontSize(9).fillColor('#6B7280').text(formatCurrency(item.unitPrice), 390, textY, { width: 70, align: 'right' });
         
         // Amount (bold dark text, or '—' if unavailable)
         if (isAvailable) {
-          d.font('Helvetica-Bold').fontSize(9).fillColor('#1A1A1A').text(formatCurrency(item.lineTotal).replace('₹', '₹ '), 460, textY, { width: 85, align: 'right' });
+          d.font('Helvetica-Bold').fontSize(9).fillColor('#1A1A1A').text(formatCurrency(item.lineTotal), 460, textY, { width: 85, align: 'right' });
         } else {
           d.font('Helvetica-Bold').fontSize(9).fillColor('#DC2626').text('—', 460, textY, { width: 85, align: 'right' });
         }

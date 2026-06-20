@@ -95,7 +95,13 @@ const runTest = async () => {
         taxAmount,
         grandTotal,
         validityDate,
-        notes
+        notes,
+        discountType,
+        discountValue,
+        discountAmount,
+        taxableAmount,
+        cgstAmount,
+        sgstAmount
       );
       
       const filePath = path.join(__dirname, `test-quote-${s.name}.pdf`);

@@ -229,7 +229,13 @@ const sendEnquiryQuotation = asyncHandler(async (req, res) => {
       taxAmount,
       grandTotal,
       validityDate,
-      notes
+      notes,
+      discountType,
+      discountValue,
+      discountAmount,
+      taxableAmount,
+      cgstAmount,
+      sgstAmount
     );
   } catch (pdfError) {
     console.error('Failed to generate quotation PDF:', pdfError);
