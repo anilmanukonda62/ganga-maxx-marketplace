@@ -273,10 +273,28 @@ export const ProductDetail = () => {
                 >
                   <Minus size={14} />
                 </button>
-                <span className="text-sm font-black text-slate-800 dark:text-white w-8 text-center">{quantity}</span>
+                <input
+                  type="number"
+                  min="1"
+                  value={quantity}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    if (isNaN(val)) {
+                      setQuantity('');
+                    } else {
+                      setQuantity(Math.max(1, val));
+                    }
+                  }}
+                  onBlur={() => {
+                    if (!quantity || isNaN(quantity)) {
+                      setQuantity(1);
+                    }
+                  }}
+                  className="text-sm font-black text-slate-800 dark:text-white w-12 text-center bg-transparent border-none outline-none focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
                 <button
                   type="button"
-                  onClick={() => setQuantity(prev => prev + 1)}
+                  onClick={() => setQuantity(prev => (Number(prev) || 0) + 1)}
                   className="h-8 w-8 flex items-center justify-center bg-white dark:bg-slate-800 hover:bg-slate-100 rounded-lg text-slate-600 dark:text-slate-300 transition cursor-pointer"
                 >
                   <Plus size={14} />
@@ -314,7 +332,7 @@ export const ProductDetail = () => {
                 </button>
                 <button
                   onClick={() => {
-                    addToEnquiryList(product, selectedVariant, quantity);
+                    addToEnquiryList(product, selectedVariant, quantity || 1);
                     setQuantity(1);
                   }}
                   className="flex-1 flex items-center justify-center gap-2 py-4 bg-brand-600 hover:bg-brand-700 dark:bg-brand-700 dark:hover:bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-600/10 hover:shadow-brand-600/25 transition-all duration-200 active:scale-95 cursor-pointer"
