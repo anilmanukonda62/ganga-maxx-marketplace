@@ -129,17 +129,6 @@ export const MultiEnquiry = () => {
     }
   };
 
-  // WhatsApp Icon
-  const WhatsAppIcon = () => (
-    <svg
-      className="w-5 h-5 fill-current"
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path d="M12.012 2c-5.506 0-9.988 4.482-9.988 9.988 0 1.761.46 3.472 1.332 4.975L2 22l5.223-1.371a9.92 9.92 0 0 0 4.789 1.229H12c5.506 0 9.988-4.482 9.988-9.988 0-2.659-1.035-5.161-2.919-7.045A9.922 9.922 0 0 0 12.012 2zm0 1.637c2.233 0 4.331.87 5.906 2.445 1.576 1.576 2.444 3.673 2.444 5.906 0 4.603-3.743 8.347-8.347 8.347a8.307 8.307 0 0 1-4.237-1.15l-.304-.18-3.149.826.84-3.071-.197-.314a8.305 8.305 0 0 1-1.272-4.461c0-4.603 3.743-8.347 8.347-8.347v.002zm-3.666 4.31c-.2.001-.33.012-.48.064-.15.053-.29.13-.41.226-.37.3-.64.712-.76 1.189-.25.968.12 1.954.7 2.723 1.15 1.523 2.58 2.768 4.19 3.65.61.33 1.27.56 1.95.67.75.12 1.48-.12 1.93-.65.23-.27.35-.61.35-.96v-.27c0-.14-.08-.26-.21-.32-.34-.17-1.03-.51-1.19-.57-.16-.06-.28-.09-.4.09-.12.18-.46.57-.56.69-.1.12-.21.13-.37.05a5.13 5.13 0 0 1-1.42-.88c-.48-.42-.87-.93-1.15-1.5-.1-.17-.01-.26.07-.35l.4-.46c.09-.1.12-.21.06-.32-.06-.16-.57-1.37-.69-1.65-.12-.29-.25-.25-.37-.25h-.26z" />
-    </svg>
-  );
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       
@@ -382,21 +371,8 @@ export const MultiEnquiry = () => {
             <h3 className="text-lg font-bold text-slate-800 dark:text-white border-l-4 border-green-600 pl-3">
               Direct Contact
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-light">
-              Skip forms entirely! Click the WhatsApp button below to speak directly with our Hyderabad sales desk. We support immediate dispatches and invoice generation.
-            </p>
 
-            <a
-              href="https://wa.me/919110306090"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 transition-all duration-300 cursor-pointer"
-            >
-              <WhatsAppIcon />
-              Chat on WhatsApp
-            </a>
-
-            <ul className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-xs">
+            <ul className="space-y-4 text-xs">
               <li className="flex items-start gap-3">
                 <MapPin size={15} className="text-green-600 mt-0.5 shrink-0" />
                 <span className="text-slate-700 dark:text-slate-300 leading-relaxed">

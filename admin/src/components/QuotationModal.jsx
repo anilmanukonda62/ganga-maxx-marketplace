@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, Eye, MessageCircle, Mail, AlertTriangle, FileText, CheckCircle, Info } from 'lucide-react';
+import { X, Send, Eye, Mail, AlertTriangle, FileText, CheckCircle, Info } from 'lucide-react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 
@@ -12,7 +12,6 @@ export const QuotationModal = ({ isOpen, onClose, enquiry, type = 'single', onQu
   const [validityDate, setValidityDate] = useState('');
   
   // Send statuses
-  const [whatsappSent, setWhatsappSent] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
@@ -41,7 +40,6 @@ export const QuotationModal = ({ isOpen, onClose, enquiry, type = 'single', onQu
   useEffect(() => {
     if (!enquiry || !isOpen) return;
 
-    setWhatsappSent(enquiry.whatsappSent || false);
     setEmailSent(enquiry.emailSent || false);
 
     // If there is an existing finalQuotation saved in the DB, load it
@@ -150,62 +148,7 @@ export const QuotationModal = ({ isOpen, onClose, enquiry, type = 'single', onQu
   const taxAmount = parseFloat(((subtotal * taxPercent) / 100).toFixed(2));
   const grandTotal = subtotal + taxAmount;
 
-  // WhatsApp Sender
-  const handleSendWhatsApp = async () => {
-    if (availableItems.length === 0) {
-      toast.error('Cannot generate quote without available products');
-      return;
-    }
 
-    const validityStr = new Date(validityDate).toLocaleDateString('en-IN');
-    
-    // Build text message
-    let productLines = '';
-    availableItems.forEach((p, idx) => {
-      productLines += `${idx + 1}. *${p.productName}* - ${p.variant || 'Default'} x ${p.quantity} = ₹${p.lineTotal.toLocaleString('en-IN')}\n`;
-    });
-
-    const message = `*GANGA MAXX MARKETPLACE - QUOTATION*
-
-Dear *${enquiry.fullName}*,
-
-Thank you for your enquiry. Please find your custom quotation below:
-
-${productLines}
-*Subtotal:* ₹${subtotal.toLocaleString('en-IN')}
-*GST (${taxPercent}%):* ₹${taxAmount.toLocaleString('en-IN')}
-*Grand Total: ₹${grandTotal.toLocaleString('en-IN')}*
-
-_Valid until: ${validityStr}_
-${notes ? `_Notes: ${notes}_\n` : ''}
-For order confirmation or commercial billing, please reply directly to this message or call our sales desk at +91 9110306090.
-
-Thank you for choosing Ganga Maxx Marketplace!`;
-
-    const cleanPhone = enquiry.phone.replace(/[^0-9]/g, '');
-    const prefix = cleanPhone.length === 10 ? '91' : '';
-    const whatsappLink = `https://wa.me/${prefix}${cleanPhone}?text=${encodeURIComponent(message)}`;
-
-    // Open WhatsApp
-    window.open(whatsappLink, '_blank');
-
-    // Notify backend
-    try {
-      const endpoint = type === 'multi'
-        ? `/multi-enquiries/${enquiry._id}/mark-whatsapp-sent`
-        : `/enquiries/${enquiry._id}/mark-whatsapp-sent`;
-      
-      const response = await api.put(endpoint);
-      if (response.data.success) {
-        setWhatsappSent(true);
-        toast.success('WhatsApp action recorded. Enquiry marked as Quoted.');
-        if (onQuoted) onQuoted(response.data.data);
-      }
-    } catch (err) {
-      console.error('Failed to record WhatsApp send', err);
-      toast.error('Failed to log WhatsApp status on backend');
-    }
-  };
 
   // Email Sender
   const handleSendEmail = async () => {
@@ -281,7 +224,7 @@ Thank you for choosing Ganga Maxx Marketplace!`;
 
   // Close with Warn Safeguard
   const handleCloseAttempt = () => {
-    const isSent = whatsappSent || emailSent;
+    const isSent = emailSent;
     if (!isSent) {
       setShowWarning(true);
     } else {
@@ -475,16 +418,6 @@ Thank you for choosing Ganga Maxx Marketplace!`;
               <span className="text-slate-400 uppercase tracking-wider text-[10px] block mr-2">Channels Sent Status:</span>
               <div className="flex items-center gap-1.5">
                 <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full ${
-                  whatsappSent 
-                    ? 'bg-green-50 text-green-600 dark:bg-green-950/20 dark:text-green-400' 
-                    : 'bg-slate-100 text-slate-400 dark:bg-darkbg-700 dark:text-slate-500'
-                }`}>
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  {whatsappSent ? 'WhatsApp: Sent ✓' : 'WhatsApp: Not Sent'}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full ${
                   emailSent 
                     ? 'bg-green-50 text-green-600 dark:bg-green-950/20 dark:text-green-400' 
                     : 'bg-slate-100 text-slate-400 dark:bg-darkbg-700 dark:text-slate-500'
@@ -507,13 +440,6 @@ Thank you for choosing Ganga Maxx Marketplace!`;
               {isSavingDraft ? 'Saving Draft...' : 'Save as Draft'}
             </button>
             <div className="flex items-center gap-3 w-full sm:w-auto">
-              <button
-                onClick={handleSendWhatsApp}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition active:scale-97 cursor-pointer"
-              >
-                <MessageCircle className="w-4 h-4" />
-                Send via WhatsApp
-              </button>
               <button
                 onClick={handleSendEmail}
                 disabled={isSendingEmail || !enquiry.email}
@@ -559,7 +485,7 @@ Thank you for choosing Ganga Maxx Marketplace!`;
                 <div>
                   <h4 className="text-base font-bold text-slate-900 dark:text-white">⚠️ Quotation not sent yet!</h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
-                    You haven't sent this quotation to the customer via WhatsApp or Email. If you close now, this enquiry will remain in 'New' status and the customer will not receive the quote. Are you sure you want to close without sending?
+                    You haven't sent this quotation to the customer via Email. If you close now, this enquiry will remain in 'New' status and the customer will not receive the quote. Are you sure you want to close without sending?
                   </p>
                 </div>
               </div>

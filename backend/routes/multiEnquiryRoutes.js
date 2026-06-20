@@ -8,7 +8,6 @@ const {
   getMultiEnquiryById,
   updateMultiEnquiryStatus,
   deleteMultiEnquiry,
-  markMultiEnquiryWhatsappSent,
   sendMultiEnquiryQuotation,
   saveMultiEnquiryQuotationDraft
 } = require('../controllers/multiEnquiryController');
@@ -34,7 +33,6 @@ router.post('/', validateMultiEnquiry, createMultiEnquiry);
 router.get('/', protect, getMultiEnquiries);
 router.get('/:id', protect, getMultiEnquiryById);
 router.put('/:id/status', protect, validateStatusUpdate, updateMultiEnquiryStatus);
-router.put('/:id/mark-whatsapp-sent', protect, markMultiEnquiryWhatsappSent);
 router.post('/:id/send-quotation', protect, sendMultiEnquiryQuotation);
 router.put('/:id/quotation-draft', protect, saveMultiEnquiryQuotationDraft);
 router.delete('/:id', protect, deleteMultiEnquiry);

@@ -43,7 +43,6 @@ const enquirySchema = new mongoose.Schema(
       },
       default: 'New',
     },
-    whatsappSent: { type: Boolean, default: false },
     emailSent: { type: Boolean, default: false },
     quotationSentAt: Date,
     finalQuotation: {

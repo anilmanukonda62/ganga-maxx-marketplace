@@ -158,29 +158,6 @@ const deleteMultiEnquiry = asyncHandler(async (req, res) => {
   });
 });
 
-/**
- * @desc    Mark multi-enquiry's whatsapp as sent and update status to Quoted
- * @route   PUT /api/multi-enquiries/:id/mark-whatsapp-sent
- * @access  Private
- */
-const markMultiEnquiryWhatsappSent = asyncHandler(async (req, res) => {
-  const enquiry = await MultiEnquiry.findById(req.params.id);
-
-  if (!enquiry) {
-    res.status(404);
-    throw new Error('Multi-product enquiry not found');
-  }
-
-  enquiry.whatsappSent = true;
-  enquiry.status = 'Quoted';
-  const updatedEnquiry = await enquiry.save();
-
-  res.json({
-    success: true,
-    message: 'WhatsApp send tracked successfully',
-    data: updatedEnquiry
-  });
-});
 
 /**
  * @desc    Send email quotation to a customer for a multi-enquiry
@@ -288,7 +265,6 @@ module.exports = {
   getMultiEnquiryById,
   updateMultiEnquiryStatus,
   deleteMultiEnquiry,
-  markMultiEnquiryWhatsappSent,
   sendMultiEnquiryQuotation,
   saveMultiEnquiryQuotationDraft
 };

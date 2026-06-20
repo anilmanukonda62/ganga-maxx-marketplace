@@ -20,7 +20,6 @@ const multiEnquirySchema = new mongoose.Schema({
     enum: ['New', 'Quoted', 'Contacted', 'Closed'], 
     default: 'New' 
   },
-  whatsappSent: { type: Boolean, default: false },
   emailSent: { type: Boolean, default: false },
   quotationSentAt: Date,
   finalQuotation: {

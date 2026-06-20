@@ -7,7 +7,6 @@ const {
   getEnquiryById,
   updateEnquiryStatus,
   deleteEnquiry,
-  markEnquiryWhatsappSent,
   sendEnquiryQuotation,
   saveEnquiryQuotationDraft,
 } = require('../controllers/enquiryController');
@@ -38,7 +37,6 @@ router.post('/', validateEnquiry, createEnquiry);
 router.get('/', protect, getEnquiries);
 router.get('/:id', protect, getEnquiryById);
 router.put('/:id/status', protect, validateStatusUpdate, updateEnquiryStatus);
-router.put('/:id/mark-whatsapp-sent', protect, markEnquiryWhatsappSent);
 router.post('/:id/send-quotation', protect, sendEnquiryQuotation);
 router.put('/:id/quotation-draft', protect, saveEnquiryQuotationDraft);
 router.delete('/:id', protect, deleteEnquiry);

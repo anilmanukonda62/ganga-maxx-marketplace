@@ -10,7 +10,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
   Phone,
-  MessageCircle,
   Eye,
   Trash2,
   ChevronLeft,
@@ -238,17 +237,6 @@ const MultiEnquiries = () => {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredEnquiries.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredEnquiries.length / itemsPerPage);
-
-  // WhatsApp link template
-  const getWhatsAppLink = (enq) => {
-    const cleanPhone = enq.phone.replace(/[^0-9]/g, '');
-    const prefix = cleanPhone.length === 10 ? '91' : '';
-    const text = encodeURIComponent(
-      `Hi ${enq.fullName}, thank you for your multi-product enquiry. We from Ganga Maxx Marketplace would like to assist you further with a custom supply proposal.`
-    );
-    return `https://wa.me/${prefix}${cleanPhone}?text=${text}`;
-  };
-
   return (
     <div className="p-6 space-y-6">
       {/* Printable Report Header */}
@@ -437,7 +425,6 @@ const MultiEnquiries = () => {
                         
                         {/* Channel icons */}
                         <div className="flex items-center gap-2 text-slate-400">
-                          <MessageCircle className={`w-4 h-4 ${enq.whatsappSent ? 'text-emerald-500 fill-emerald-100/10' : 'text-slate-300 dark:text-slate-600'}`} title={enq.whatsappSent ? 'WhatsApp: Sent' : 'WhatsApp: Not Sent'} />
                           <Mail className={`w-4 h-4 ${enq.emailSent ? 'text-primary-500 fill-primary-100/10' : 'text-slate-300 dark:text-slate-600'}`} title={enq.emailSent ? 'Email: Sent' : 'Email: Not Sent'} />
                         </div>
                       </div>
@@ -452,18 +439,6 @@ const MultiEnquiries = () => {
                           title="Call Client"
                         >
                           <Phone className="w-4.5 h-4.5" />
-                        </motion.a>
-
-                        {/* WhatsApp action */}
-                        <motion.a
-                          href={getWhatsAppLink(enq)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          whileHover={{ scale: 1.02 }}
-                          className="p-1.5 rounded-lg border border-slate-250 dark:border-darkbg-700 text-slate-500 hover:text-emerald-500 hover:border-emerald-250 dark:hover:border-emerald-950 hover:bg-emerald-50 dark:hover:bg-darkbg-900 transition cursor-pointer"
-                          title="WhatsApp Reply"
-                        >
-                          <MessageCircle className="w-4.5 h-4.5" />
                         </motion.a>
 
                         {/* Quotation Builder Button */}

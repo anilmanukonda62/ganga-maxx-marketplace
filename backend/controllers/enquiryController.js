@@ -147,29 +147,6 @@ const deleteEnquiry = asyncHandler(async (req, res) => {
   });
 });
 
-/**
- * @desc    Mark a single enquiry's whatsapp as sent and update status to Quoted
- * @route   PUT /api/enquiries/:id/mark-whatsapp-sent
- * @access  Private
- */
-const markEnquiryWhatsappSent = asyncHandler(async (req, res) => {
-  const enquiry = await Enquiry.findById(req.params.id);
-
-  if (!enquiry) {
-    res.status(404);
-    throw new Error('Enquiry not found');
-  }
-
-  enquiry.whatsappSent = true;
-  enquiry.status = 'Quoted';
-  const updatedEnquiry = await enquiry.save();
-
-  res.json({
-    success: true,
-    message: 'Enquiry WhatsApp send tracked successfully',
-    data: updatedEnquiry,
-  });
-});
 
 /**
  * @desc    Send email quotation to a customer for a single enquiry
@@ -277,7 +254,6 @@ module.exports = {
   getEnquiryById,
   updateEnquiryStatus,
   deleteEnquiry,
-  markEnquiryWhatsappSent,
   sendEnquiryQuotation,
   saveEnquiryQuotationDraft,
 };

@@ -244,16 +244,7 @@ const Enquiries = () => {
 
 
 
-  // WhatsApp click generator
-  const getWhatsAppLink = (enq) => {
-    const cleanPhone = enq.phone.replace(/[^0-9]/g, '');
-    // Ensure 10-digit standard Indian phone format
-    const prefix = cleanPhone.length === 10 ? '91' : '';
-    const text = encodeURIComponent(
-      `Hi ${enq.fullName}, thank you for your enquiry about ${enq.productInterested || 'our products'}. We from Ganga Maxx Marketplace would like to assist you further.`
-    );
-    return `https://wa.me/${prefix}${cleanPhone}?text=${text}`;
-  };
+
 
   return (
     <div className="p-6 space-y-6">
@@ -447,10 +438,6 @@ const Enquiries = () => {
                         {/* Channels Sent Status for Quoted */}
                         {enq.status === 'Quoted' && (
                           <div className="flex items-center gap-1.5 mt-1 ml-1 select-none">
-                            <MessageCircle 
-                              className={`w-3.5 h-3.5 ${enq.whatsappSent ? 'text-emerald-500' : 'text-slate-350 dark:text-slate-605'}`} 
-                              title={enq.whatsappSent ? 'Quotation sent via WhatsApp' : 'Quotation not sent via WhatsApp'}
-                            />
                             <Mail 
                               className={`w-3.5 h-3.5 ${enq.emailSent ? 'text-emerald-500' : 'text-slate-350 dark:text-slate-605'}`} 
                               title={enq.emailSent ? 'Quotation sent via Email' : 'Quotation not sent via Email'}
@@ -470,17 +457,7 @@ const Enquiries = () => {
                         >
                           <Phone className="w-4.5 h-4.5" />
                         </motion.a>
-                        {/* WhatsApp Button */}
-                        <motion.a
-                          href={getWhatsAppLink(enq)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          whileHover={{ scale: 1.02 }}
-                          className="p-1.5 rounded-lg border border-slate-250 dark:border-darkbg-700 text-slate-500 hover:text-emerald-500 hover:border-emerald-250 dark:hover:border-emerald-950 hover:bg-emerald-50 dark:hover:bg-darkbg-900 transition cursor-pointer"
-                          title="Reply via WhatsApp"
-                        >
-                          <MessageCircle className="w-4.5 h-4.5" />
-                        </motion.a>
+
                         {/* Create Quotation Button */}
                         <motion.button
                           onClick={() => {
@@ -707,14 +684,6 @@ const Enquiries = () => {
                       {selectedEnquiry.status === 'Quoted' && (
                         <div className="flex gap-2">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${
-                            selectedEnquiry.whatsappSent 
-                              ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400'
-                              : 'bg-slate-100 text-slate-400 dark:bg-darkbg-700 dark:text-slate-500'
-                          }`}>
-                            <MessageCircle className="w-3.5 h-3.5" />
-                            WhatsApp: {selectedEnquiry.whatsappSent ? 'Sent' : 'Not Sent'}
-                          </span>
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${
                             selectedEnquiry.emailSent 
                               ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400'
                               : 'bg-slate-100 text-slate-400 dark:bg-darkbg-700 dark:text-slate-500'
@@ -763,17 +732,8 @@ const Enquiries = () => {
                   href={`tel:${selectedEnquiry.phone}`}
                   className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 dark:border-darkbg-700 rounded-xl hover:bg-slate-100 dark:hover:bg-darkbg-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition"
                 >
-                  <Phone className="w-4 h-4" />
+                  <Phone className="w-4.5 h-4.5" />
                   Call Client
-                </a>
-                <a
-                  href={getWhatsAppLink(selectedEnquiry)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl transition shadow-sm"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  WhatsApp
                 </a>
               </div>
             </div>
