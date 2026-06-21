@@ -1,22 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { DetailSkeleton } from '../components/LoadingSkeleton';
-import { ArrowLeft, Plus, Trash2, Save, X, ImageIcon, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, ImageIcon, AlertCircle } from 'lucide-react';
 
 const AddEditProduct = () => {
   const { id } = useParams(); // Numeric ID for edit mode
   const isEditMode = !!id;
   const navigate = useNavigate();
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   // Form Fields State
   const [name, setName] = useState('');
-  const [category, setCategory] = useState('cleaning-chemicals');
+  const [categories, setCategories] = useState([]);
+  const [category, setCategory] = useState('');
   const [image, setImage] = useState('');
   const [price, setPrice] = useState('');
   const [priceLabel, setPriceLabel] = useState('Price per unit');
@@ -29,15 +30,22 @@ const AddEditProduct = () => {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    if (isEditMode) {
-      const fetchProductDetails = async () => {
-        setLoading(true);
-        try {
+    const initData = async () => {
+      setLoading(true);
+      try {
+        const categoriesRes = await api.get('/categories/all');
+        let fetchedCats = [];
+        if (categoriesRes.data.success) {
+          fetchedCats = categoriesRes.data.data;
+          setCategories(fetchedCats);
+        }
+
+        if (isEditMode) {
           const response = await api.get(`/products/${id}`);
           if (response.data.success) {
             const prod = response.data.data;
             setName(prod.name || '');
-            setCategory(prod.category || 'cleaning-chemicals');
+            setCategory(prod.category || (fetchedCats[0]?.id || ''));
             setImage(prod.image || '');
             setPrice(prod.price !== undefined ? prod.price : '');
             setPriceLabel(prod.priceLabel || 'Price per unit');
@@ -46,16 +54,23 @@ const AddEditProduct = () => {
             setDescription(prod.description || '');
             setVariants(prod.variants?.length ? prod.variants : [{ label: '', price: '' }]);
           }
-        } catch (error) {
-          toast.error('Product not found or failed to load');
-          navigate('/products');
-        } finally {
-          setLoading(false);
+        } else {
+          if (fetchedCats.length > 0) {
+            setCategory(fetchedCats[0].id);
+          }
         }
-      };
+      } catch (error) {
+        toast.error('Failed to load form data');
+        console.error(error);
+        if (isEditMode) {
+          navigate('/products');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      fetchProductDetails();
-    }
+    initData();
   }, [id, isEditMode, navigate]);
 
   // Handle variants array updates
@@ -215,11 +230,11 @@ const AddEditProduct = () => {
               onChange={(e) => setCategory(e.target.value)}
               className="w-full px-4 py-2.5 bg-slate-50 dark:bg-darkbg-900 border border-slate-200 dark:border-darkbg-700 text-slate-900 dark:text-white rounded-xl outline-none text-sm cursor-pointer"
             >
-              <option value="cleaning-chemicals">Cleaning Chemicals</option>
-              <option value="cleaning-tools-equipment">Cleaning Tools & Equipment</option>
-              <option value="mechanical-equipment">Mechanical Equipment</option>
-              <option value="washroom-supplies">Washroom Supplies</option>
-              <option value="eco-friendly-products">Eco-Friendly Products</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name} {!cat.isActive ? '(Inactive)' : ''}
+                </option>
+              ))}
             </select>
           </div>
 

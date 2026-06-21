@@ -19,7 +19,8 @@ import {
   Plus,
   MessageSquare,
   Download,
-  Globe
+  Globe,
+  Layers
 } from 'lucide-react';
 import {
   BarChart,
@@ -41,6 +42,7 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [enquiries, setEnquiries] = useState([]);
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingStockId, setUpdatingStockId] = useState(null);
 
@@ -88,15 +90,17 @@ const Dashboard = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [statsRes, enquiriesRes, productsRes] = await Promise.all([
+      const [statsRes, enquiriesRes, productsRes, categoriesRes] = await Promise.all([
         api.get('/admin/dashboard'),
         api.get('/enquiries'),
-        api.get('/products')
+        api.get('/products'),
+        api.get('/categories')
       ]);
 
       if (statsRes.data.success) setStats(statsRes.data.data);
       if (enquiriesRes.data.success) setEnquiries(enquiriesRes.data.data);
       if (productsRes.data.success) setProducts(productsRes.data.data);
+      if (categoriesRes.data.success) setCategories(categoriesRes.data.data);
     } catch (error) {
       toast.error('Failed to load dashboard metrics');
       console.error(error);
@@ -168,16 +172,13 @@ const Dashboard = () => {
 
   // Aggregate Product Data for Donut Chart
   const categoryCounts = {};
-  const categoryNames = {
-    'cleaning-chemicals': 'Cleaning Chemicals',
-    'cleaning-tools-equipment': 'Cleaning Tools',
-    'mechanical-equipment': 'Mechanical Equipment',
-    'washroom-supplies': 'Washroom Supplies',
-    'eco-friendly-products': 'Eco-Friendly',
-  };
+  const categoryNames = {};
+  categories.forEach(cat => {
+    categoryNames[cat.id] = cat.name;
+  });
 
   products.forEach((p) => {
-    const catLabel = categoryNames[p.category] || p.category;
+    const catLabel = categoryNames[p.category] || p.category.replace(/-/g, ' ');
     categoryCounts[catLabel] = (categoryCounts[catLabel] || 0) + 1;
   });
 
@@ -225,6 +226,15 @@ const Dashboard = () => {
             icon={Package}
             color="blue"
             link="/products"
+          />
+        </motion.div>
+        <motion.div variants={itemVariants}>
+          <StatCard
+            title="Total Categories"
+            value={stats?.totalCategories || 0}
+            icon={Layers}
+            color="teal"
+            link="/categories"
           />
         </motion.div>
         <motion.div variants={itemVariants}>

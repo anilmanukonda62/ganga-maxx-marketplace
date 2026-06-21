@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Phone, Mail, MapPin } from 'lucide-react';
 import productsData from '../data/products.json';
+import { useProducts } from '../hooks/useProducts';
 
 // Custom inline brand SVGs to bypass bundler export mismatches and improve style fidelity
 const FacebookIcon = ({ size = 18 }) => (
@@ -25,7 +26,8 @@ const LinkedinIcon = ({ size = 18 }) => (
 );
 
 export const Footer = () => {
-  const categories = productsData.categories;
+  const { categories: dynamicCategories } = useProducts();
+  const categories = dynamicCategories && dynamicCategories.length > 0 ? dynamicCategories : productsData.categories;
   return (
     <footer className="bg-slate-900 text-slate-300 border-t border-slate-800">
       

@@ -13,7 +13,8 @@ import {
   ChevronRight,
   LogOut,
   X,
-  ListChecks
+  ListChecks,
+  Layers
 } from 'lucide-react';
 
 const MotionNavLink = motion(NavLink);
@@ -34,6 +35,7 @@ const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Analytics', path: '/analytics', icon: BarChart2 },
     { name: 'Products', path: '/products', icon: Package },
+    { name: 'Categories', path: '/categories', icon: Layers },
     { name: 'Enquiries', path: '/enquiries', icon: ClipboardList },
     { name: 'Multi-Product Enquiries', path: '/multi-enquiries', icon: ListChecks },
     { name: 'Contact Messages', path: '/contact', icon: Mail },

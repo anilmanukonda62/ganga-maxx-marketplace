@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
@@ -20,6 +20,7 @@ import MultiEnquiries from './pages/MultiEnquiries';
 import ContactMessages from './pages/ContactMessages';
 import Settings from './pages/Settings';
 import Analytics from './pages/Analytics';
+import Categories from './pages/Categories';
 
 import { useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -99,6 +100,7 @@ function AppContent() {
             <Route path="products" element={<PageTransition><Products /></PageTransition>} />
             <Route path="products/add" element={<PageTransition><AddEditProduct /></PageTransition>} />
             <Route path="products/edit/:id" element={<PageTransition><AddEditProduct /></PageTransition>} />
+            <Route path="categories" element={<PageTransition><Categories /></PageTransition>} />
             <Route path="enquiries" element={<PageTransition><Enquiries /></PageTransition>} />
             <Route path="multi-enquiries" element={<PageTransition><MultiEnquiries /></PageTransition>} />
             <Route path="contact" element={<PageTransition><ContactMessages /></PageTransition>} />

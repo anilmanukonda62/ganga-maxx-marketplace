@@ -17,14 +17,7 @@ const validateProduct = [
   body('category')
     .notEmpty()
     .withMessage('Category is required')
-    .isIn([
-      'cleaning-chemicals',
-      'cleaning-tools-equipment',
-      'mechanical-equipment',
-      'washroom-supplies',
-      'eco-friendly-products',
-    ])
-    .withMessage('Invalid category'),
+    .trim(),
   body('image').notEmpty().withMessage('Product image URL is required').isURL().withMessage('Image must be a valid URL'),
   body('price').isNumeric().withMessage('Price must be a number').custom(val => val >= 0).withMessage('Price cannot be negative'),
   body('description').notEmpty().withMessage('Description is required').trim(),

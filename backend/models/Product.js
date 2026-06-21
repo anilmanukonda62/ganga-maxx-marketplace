@@ -15,16 +15,6 @@ const productSchema = new mongoose.Schema(
     category: {
       type: String,
       required: [true, 'Product category is required'],
-      enum: {
-        values: [
-          'cleaning-chemicals',
-          'cleaning-tools-equipment',
-          'mechanical-equipment',
-          'washroom-supplies',
-          'eco-friendly-products',
-        ],
-        message: '{VALUE} is not a valid category',
-      },
     },
     image: {
       type: String,

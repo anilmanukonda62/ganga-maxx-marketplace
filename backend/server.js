@@ -17,6 +17,7 @@ const errorMiddleware = require('./middleware/errorMiddleware');
 // Route imports
 const adminRoutes = require('./routes/adminRoutes');
 const productRoutes = require('./routes/productRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
 const enquiryRoutes = require('./routes/enquiryRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const multiEnquiryRoutes = require('./routes/multiEnquiryRoutes');
@@ -64,6 +65,7 @@ if (process.env.NODE_ENV !== 'production') {
 // API Routes
 app.use('/api/admin', adminRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/categories', categoryRoutes);
 app.use('/api/enquiries', enquiryRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/multi-enquiries', multiEnquiryRoutes);

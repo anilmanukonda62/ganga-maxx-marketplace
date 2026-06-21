@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const sendEmailViaBrevo = require('../utils/sendEmailViaBrevo');
 const Admin = require('../models/Admin');
 const Product = require('../models/Product');
+const Category = require('../models/Category');
 const Enquiry = require('../models/Enquiry');
 const MultiEnquiry = require('../models/MultiEnquiry');
 const ContactMessage = require('../models/ContactMessage');
@@ -84,6 +85,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     newContactMessages,
     totalMultiEnquiries,
     newMultiEnquiries,
+    totalCategories,
   ] = await Promise.all([
     Product.countDocuments(),
     Enquiry.countDocuments(),
@@ -94,6 +96,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     ContactMessage.countDocuments({ status: 'New' }),
     MultiEnquiry.countDocuments(),
     MultiEnquiry.countDocuments({ status: 'New' }),
+    Category.countDocuments({ isActive: true }),
   ]);
 
   res.json({
@@ -108,6 +111,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       newContactMessages,
       totalMultiEnquiries,
       newMultiEnquiries,
+      totalCategories,
     },
   });
 });

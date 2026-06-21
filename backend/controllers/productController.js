@@ -1,40 +1,7 @@
 const Product = require('../models/Product');
+const Category = require('../models/Category');
 const asyncHandler = require('../utils/asyncHandler');
 const { validationResult } = require('express-validator');
-
-// Static categories matching products.json
-const categories = [
-  {
-    id: 'cleaning-chemicals',
-    name: 'Cleaning Chemicals',
-    icon: '🧴',
-    description: 'Professional cleaning chemicals and detergents',
-  },
-  {
-    id: 'cleaning-tools-equipment',
-    name: 'Cleaning Tools & Equipment',
-    icon: '🧹',
-    description: 'Essential cleaning tools and equipment',
-  },
-  {
-    id: 'mechanical-equipment',
-    name: 'Mechanical Equipment',
-    icon: '⚙️',
-    description: 'Industrial cleaning machines and equipment',
-  },
-  {
-    id: 'washroom-supplies',
-    name: 'Washroom Supplies',
-    icon: '🚻',
-    description: 'Disposable washroom and restroom supplies',
-  },
-  {
-    id: 'eco-friendly-products',
-    name: 'Eco-Friendly Products',
-    icon: '🌿',
-    description: 'Sustainable and eco-conscious cleaning solutions',
-  },
-];
 
 /**
  * @desc    Get all products with filtering, search, and sorting
@@ -92,15 +59,11 @@ const getProducts = asyncHandler(async (req, res) => {
   });
 });
 
-/**
- * @desc    Get all product categories
- * @route   GET /api/products/categories
- * @access  Public
- */
 const getCategories = asyncHandler(async (req, res) => {
+  const activeCategories = await Category.find({ isActive: true }).sort({ displayOrder: 1 });
   res.json({
     success: true,
-    data: categories,
+    data: activeCategories,
   });
 });
 
