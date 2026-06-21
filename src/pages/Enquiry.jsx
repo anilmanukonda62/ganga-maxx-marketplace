@@ -70,7 +70,10 @@ export const Enquiry = () => {
       newErrors.phone = 'Please enter a valid 10-digit phone number (starts with 6-9)';
     }
 
-    if (formData.email && formData.email.trim() !== '') {
+    if (!formData.email || formData.email.trim() === '') {
+      newErrors.email = 'Email is required';
+      setEmailTouched(true);
+    } else {
       if (isValidating) {
         newErrors.email = 'Email validation is in progress. Please wait...';
         setEmailTouched(true);
@@ -94,7 +97,7 @@ export const Enquiry = () => {
       const enquiryPayload = {
         fullName: formData.fullName,
         phone: formData.phone,
-        email: formData.email || undefined,
+        email: formData.email,
         companyName: formData.companyName,
         productInterested: formData.productInterested || undefined,
         quantity: formData.quantity || undefined,
@@ -259,7 +262,7 @@ export const Enquiry = () => {
 
                 <div>
                   <label htmlFor="email" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
-                    Email Address (Optional)
+                    Email Address *
                   </label>
                   <div className="relative">
                     <input

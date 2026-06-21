@@ -16,7 +16,7 @@ const validateEnquiry = [
   body('fullName').notEmpty().withMessage('Full name is required').trim(),
   body('phone').notEmpty().withMessage('Phone number is required').trim(),
   body('companyName').notEmpty().withMessage('Company name is required').trim(),
-  body('email').optional({ checkFalsy: true }).isEmail().withMessage('Invalid email address').trim(),
+  body('email').notEmpty().withMessage('Email address is required').isEmail().withMessage('Invalid email address').trim(),
   body('quantity').optional().trim(),
   body('productInterested').optional().trim(),
   body('message').optional().trim(),

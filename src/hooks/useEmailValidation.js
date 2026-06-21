@@ -8,6 +8,8 @@ export const useEmailValidation = (email) => {
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
+    let active = true;
+
     if (!email || email.trim() === '') {
       setIsValidating(false);
       setIsValid(null);
@@ -41,6 +43,8 @@ export const useEmailValidation = (email) => {
         });
 
         const data = await response.json();
+        
+        if (!active) return;
         setIsValidating(false);
 
         if (response.ok && data.success) {
@@ -52,19 +56,23 @@ export const useEmailValidation = (email) => {
             setErrorMessage(data.message || 'This email does not exist');
           }
         } else {
-          // Fallback to true on server issues so we don't block submissions
-          setIsValid(true);
+          // Server error or 404: do not show green checkmark, keep it unvalidated
+          setIsValid(null);
           setErrorMessage('');
         }
       } catch (err) {
         console.error('Email validation error:', err);
+        if (!active) return;
         setIsValidating(false);
-        setIsValid(true);
+        setIsValid(null);
         setErrorMessage('');
       }
     }, 500);
 
-    return () => clearTimeout(debounceTimer);
+    return () => {
+      active = false;
+      clearTimeout(debounceTimer);
+    };
   }, [email]);
 
   return { isValidating, isValid, errorMessage };

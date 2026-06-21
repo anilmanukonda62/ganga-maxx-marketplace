@@ -67,6 +67,7 @@ export const Contact = () => {
 
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
+      setEmailTouched(true);
     } else if (isValid === false) {
       newErrors.email = emailError || 'This email does not exist';
       setEmailTouched(true);

@@ -28,13 +28,16 @@ const createEnquiry = asyncHandler(async (req, res) => {
     message,
   } = req.body;
 
-  // Run email validation if provided and not empty
-  if (email && email.trim() !== '') {
-    const emailValidation = await validateEmailExists(email);
-    if (!emailValidation.valid) {
-      res.status(400);
-      throw new Error('This email does not exist. Please provide a valid, active email address.');
-    }
+  if (!email || email.trim() === '') {
+    res.status(400);
+    throw new Error('Email is required');
+  }
+
+  // Run email validation
+  const emailValidation = await validateEmailExists(email);
+  if (!emailValidation.valid) {
+    res.status(400);
+    throw new Error('This email does not exist. Please provide a valid, active email address.');
   }
 
   const enquiry = await Enquiry.create({
