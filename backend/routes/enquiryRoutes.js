@@ -9,6 +9,8 @@ const {
   deleteEnquiry,
   sendEnquiryQuotation,
   saveEnquiryQuotationDraft,
+  sendEnquiryOtp,
+  verifyEnquiryOtp,
 } = require('../controllers/enquiryController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -30,7 +32,9 @@ const validateStatusUpdate = [
     .withMessage('Invalid status value'),
 ];
 
-// Public route to submit enquiry
+// Public routes to submit enquiry and handle OTP email verification
+router.post('/send-otp', sendEnquiryOtp);
+router.post('/verify-otp', verifyEnquiryOtp);
 router.post('/', validateEnquiry, createEnquiry);
 
 // Admin-only protected routes

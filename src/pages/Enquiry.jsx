@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, MapPin, Phone, Mail, CheckCircle, AlertCircle } from 'lucide-react';
+import { Send, MapPin, Phone, Mail, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { useProducts } from '../hooks/useProducts';
-import { useEmailValidation } from '../hooks/useEmailValidation';
 
 export const Enquiry = () => {
   const location = useLocation();
@@ -28,9 +27,16 @@ export const Enquiry = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  // Email validation states
-  const [emailTouched, setEmailTouched] = useState(false);
-  const { isValidating, isValid, errorMessage: emailError } = useEmailValidation(formData.email);
+  // Email OTP verification states
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [verificationToken, setVerificationToken] = useState('');
+  const [otpTimer, setOtpTimer] = useState(0);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [otpError, setOtpError] = useState('');
+  const otpInputRefs = useRef([]);
 
   // Prefill field if product details state exists
   useEffect(() => {
@@ -38,6 +44,21 @@ export const Enquiry = () => {
       setFormData((prev) => ({ ...prev, productInterested: prefilledProduct }));
     }
   }, [prefilledProduct]);
+
+  // OTP Countdown timer effect
+  useEffect(() => {
+    if (otpTimer <= 0) return;
+    const interval = setInterval(() => {
+      setOtpTimer((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [otpTimer]);
+
+  const formatTime = (timeInSeconds) => {
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = timeInSeconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
 
   // Handle input changes
   const handleChange = (e) => {
@@ -47,12 +68,160 @@ export const Enquiry = () => {
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
+    // Reset email verification if email input is modified
+    if (name === 'email') {
+      setEmailVerified(false);
+      setVerificationToken('');
+      setOtpSent(false);
+      setOtpError('');
+    }
   };
 
   // Indian mobile number validation helper (10 digits starting with 6-9)
   const validatePhone = (number) => {
     const regex = /^[6-9]\d{9}$/;
     return regex.test(number);
+  };
+
+  const handleSendOtp = async () => {
+    if (!formData.email || !/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/.test(formData.email)) {
+      setErrors((prev) => ({ ...prev, email: 'Please enter a valid email address' }));
+      return;
+    }
+
+    setSendingOtp(true);
+    setOtpError('');
+    try {
+      const API_URL = import.meta.env.DEV 
+        ? '/api' 
+        : 'https://ganga-maxx-marketplace-ct25.onrender.com/api';
+      const response = await fetch(`${API_URL}/enquiries/send-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: formData.email })
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to send OTP');
+      }
+
+      setOtpSent(true);
+      setOtpTimer(300); // 5 minutes
+      setOtp(['', '', '', '', '', '']);
+      setOtpError('');
+      
+      // Auto-focus first input box
+      setTimeout(() => {
+        if (otpInputRefs.current[0]) otpInputRefs.current[0].focus();
+      }, 100);
+    } catch (err) {
+      setOtpError(err.message || 'Error sending OTP. Please try again.');
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e, customOtp = null) => {
+    if (e) e.preventDefault();
+    const finalOtp = customOtp || otp.join('');
+    if (finalOtp.length !== 6) {
+      setOtpError('Please enter a 6-digit OTP code');
+      return;
+    }
+
+    setVerifyingOtp(true);
+    setOtpError('');
+    try {
+      const API_URL = import.meta.env.DEV 
+        ? '/api' 
+        : 'https://ganga-maxx-marketplace-ct25.onrender.com/api';
+      const response = await fetch(`${API_URL}/enquiries/verify-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: formData.email, otp: finalOtp })
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Invalid or expired OTP');
+      }
+
+      setEmailVerified(true);
+      setVerificationToken(data.verificationToken);
+      setOtpSent(false);
+      setOtpError('');
+      setErrors((prev) => ({ ...prev, email: '' }));
+    } catch (err) {
+      setOtpError(err.message || 'Invalid or expired OTP');
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
+  const handleOtpChange = (value, index) => {
+    if (isNaN(value)) return;
+
+    const newOtp = [...otp];
+    newOtp[index] = value.substring(value.length - 1);
+    setOtp(newOtp);
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      if (otpInputRefs.current[index + 1]) {
+        otpInputRefs.current[index + 1].focus();
+      }
+    }
+
+    // Auto-submit if complete
+    const otpValue = newOtp.join('');
+    if (otpValue.length === 6 && newOtp.every((v) => v !== '')) {
+      handleVerifyOtp(null, otpValue);
+    }
+  };
+
+  const handleOtpKeyDown = (e, index) => {
+    if (e.key === 'Backspace') {
+      if (!otp[index] && index > 0) {
+        const newOtp = [...otp];
+        newOtp[index - 1] = '';
+        setOtp(newOtp);
+        if (otpInputRefs.current[index - 1]) {
+          otpInputRefs.current[index - 1].focus();
+        }
+      }
+    }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text/plain').trim();
+    if (!/^\d{6}$/.test(pastedData)) {
+      setOtpError('Please paste a 6-digit OTP code');
+      return;
+    }
+
+    const pastedDigits = pastedData.split('');
+    setOtp(pastedDigits);
+    
+    if (otpInputRefs.current[5]) {
+      otpInputRefs.current[5].focus();
+    }
+
+    handleVerifyOtp(null, pastedData);
+  };
+
+  const handleResetEmail = () => {
+    setEmailVerified(false);
+    setVerificationToken('');
+    setOtpSent(false);
+    setOtp(['', '', '', '', '', '']);
+    setOtpError('');
+    setFormData((prev) => ({ ...prev, email: '' }));
   };
 
   // Submit Handler structured as an async function for future API integration
@@ -72,15 +241,8 @@ export const Enquiry = () => {
 
     if (!formData.email || formData.email.trim() === '') {
       newErrors.email = 'Email is required';
-      setEmailTouched(true);
-    } else {
-      if (isValidating) {
-        newErrors.email = 'Email validation is in progress. Please wait...';
-        setEmailTouched(true);
-      } else if (isValid === false) {
-        newErrors.email = emailError || 'This email does not exist';
-        setEmailTouched(true);
-      }
+    } else if (!emailVerified) {
+      newErrors.email = 'Please verify your email before submitting';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -101,7 +263,8 @@ export const Enquiry = () => {
         companyName: formData.companyName,
         productInterested: formData.productInterested || undefined,
         quantity: formData.quantity || undefined,
-        message: formData.requirements || undefined
+        message: formData.requirements || undefined,
+        emailVerificationToken: verificationToken,
       };
 
       const API_URL = import.meta.env.DEV 
@@ -135,7 +298,10 @@ export const Enquiry = () => {
         quantity: '',
         requirements: ''
       });
-      setEmailTouched(false);
+      setEmailVerified(false);
+      setVerificationToken('');
+      setOtpSent(false);
+      setOtp(['', '', '', '', '', '']);
 
       // Hide success notification after 7 seconds
       setTimeout(() => setSubmitSuccess(false), 7000);
@@ -271,33 +437,118 @@ export const Enquiry = () => {
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      onBlur={() => setEmailTouched(true)}
-                      className={`w-full pr-10 px-4 py-3 text-sm bg-slate-50 dark:bg-slate-950 border ${
-                        emailTouched && (emailError || errors.email) ? 'border-red-500' : 'border-slate-200'
-                      } rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 dark:focus:ring-green-400/50 text-slate-800 dark:text-white`}
+                      readOnly={emailVerified}
+                      className={`w-full pr-24 px-4 py-3 text-sm bg-slate-50 dark:bg-slate-950 border ${
+                        errors.email ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'
+                      } rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 dark:focus:ring-green-400/50 text-slate-800 dark:text-white ${
+                        emailVerified ? 'bg-slate-100 dark:bg-slate-900 cursor-not-allowed opacity-75' : ''
+                      }`}
                       placeholder="e.g. admin@regency.com"
                     />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
-                      {formData.email && formData.email.trim() !== '' && (
-                        <>
-                          {isValidating && (
-                            <div className="w-4 h-4 border-2 border-slate-300 border-t-green-600 rounded-full animate-spin" />
-                          )}
-                          {!isValidating && isValid === true && (
-                            <CheckCircle size={16} className="text-green-500" />
-                          )}
-                          {!isValidating && isValid === false && (
-                            <AlertCircle size={16} className="text-red-500" />
-                          )}
-                        </>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                      {emailVerified ? (
+                        <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/50">
+                          Verified ✓
+                        </span>
+                      ) : (
+                        formData.email && /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/.test(formData.email) && !otpSent && (
+                          <button
+                            type="button"
+                            onClick={handleSendOtp}
+                            disabled={sendingOtp}
+                            className="text-[10px] font-bold text-white bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 px-2.5 py-1.5 rounded-lg shadow-sm transition-all disabled:bg-slate-400 cursor-pointer"
+                          >
+                            {sendingOtp ? 'Sending...' : 'Verify'}
+                          </button>
+                        )
                       )}
                     </div>
                   </div>
-                  {emailTouched && (emailError || errors.email) && (
+                  {errors.email && (
                     <span className="text-red-500 text-xs mt-1 block flex items-center gap-1">
-                      <AlertCircle size={12} /> {emailError || errors.email}
+                      <AlertCircle size={12} /> {errors.email}
                     </span>
                   )}
+                  {emailVerified && (
+                    <button
+                      type="button"
+                      onClick={handleResetEmail}
+                      className="text-xs text-green-600 hover:text-green-700 font-bold mt-1.5 underline block cursor-pointer"
+                    >
+                      Change Email
+                    </button>
+                  )}
+
+                  <AnimatePresence>
+                    {otpSent && !emailVerified && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                        animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                        exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                        className="overflow-hidden bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800 space-y-4"
+                      >
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block">
+                          Enter the 6-digit verification code sent to your email:
+                        </span>
+                        
+                        <div className="flex justify-between gap-2" onPaste={handleOtpPaste}>
+                          {otp.map((digit, index) => (
+                            <input
+                              key={index}
+                              ref={(el) => (otpInputRefs.current[index] = el)}
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              maxLength={1}
+                              value={digit}
+                              onChange={(e) => handleOtpChange(e.target.value, index)}
+                              onKeyDown={(e) => handleOtpKeyDown(e, index)}
+                              className="w-10 h-12 text-center text-lg font-bold bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-green-600 focus:ring-1 focus:ring-green-600 text-slate-900 dark:text-white rounded-lg outline-none transition"
+                              disabled={verifyingOtp}
+                            />
+                          ))}
+                        </div>
+
+                        {otpError && (
+                          <span className="text-red-500 text-xs mt-1 block flex items-center gap-1">
+                            <AlertCircle size={12} /> {otpError}
+                          </span>
+                        )}
+
+                        <div className="flex items-center justify-between text-xs pt-1">
+                          <span className="text-slate-500 dark:text-slate-400">
+                            {otpTimer > 0 ? (
+                              <>
+                                Code expires in: <span className="font-mono font-semibold text-slate-700 dark:text-white">{formatTime(otpTimer)}</span>
+                              </>
+                            ) : (
+                              <span className="text-red-500 font-medium">Code has expired</span>
+                            )}
+                          </span>
+
+                          {otpTimer === 0 ? (
+                            <button
+                              type="button"
+                              onClick={handleSendOtp}
+                              disabled={sendingOtp}
+                              className="text-green-600 hover:text-green-700 font-bold transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                            >
+                              Resend OTP
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleVerifyOtp()}
+                              disabled={verifyingOtp || otp.join('').length !== 6}
+                              className="text-white bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer disabled:opacity-50"
+                            >
+                              {verifyingOtp ? 'Verifying...' : 'Verify'}
+                            </button>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
 
@@ -355,14 +606,21 @@ export const Enquiry = () => {
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full flex items-center justify-center gap-2 py-3.5 font-bold text-white bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 rounded-xl shadow-md transition-all duration-200 disabled:bg-slate-400"
-              >
-                <Send size={15} />
-                {isSubmitting ? 'Sending Enquiry...' : 'Send Enquiry'}
-              </button>
+              <div className="space-y-2">
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !emailVerified}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 font-bold text-white bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 rounded-xl shadow-md transition-all duration-200 disabled:bg-slate-400 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <Send size={15} />
+                  {isSubmitting ? 'Sending Enquiry...' : 'Send Enquiry'}
+                </button>
+                {!emailVerified && (
+                  <p className="text-center text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    Please verify your email to submit
+                  </p>
+                )}
+              </div>
             </form>
           </div>
         </div>
