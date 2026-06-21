@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, Mail, MapPin, Send, CheckCircle, MessageCircle } from 'lucide-react';
+import { Phone, Mail, MapPin, Send, CheckCircle, MessageCircle, AlertCircle } from 'lucide-react';
+import { useEmailValidation } from '../hooks/useEmailValidation';
 
 // Custom inline brand SVGs to bypass bundler export mismatches and improve style fidelity
 const FacebookIcon = ({ size = 16 }) => (
@@ -28,21 +29,64 @@ export const Contact = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     subject: '',
     message: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
+  // Validation & touched states
+  const [errors, setErrors] = useState({});
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const { isValidating, isValid, errorMessage: emailError } = useEmailValidation(formData.email);
+
   // Inputs change handler
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const validatePhone = (number) => {
+    const regex = /^[6-9]\d{9}$/;
+    return regex.test(number);
   };
 
   // Submission handler
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const newErrors = {};
+
+    if (!formData.name.trim()) newErrors.name = 'Name is required';
+    if (!formData.subject.trim()) newErrors.subject = 'Subject is required';
+    if (!formData.message.trim()) newErrors.message = 'Message is required';
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (isValid === false) {
+      newErrors.email = emailError || 'This email does not exist';
+      setEmailTouched(true);
+    } else if (isValidating) {
+      newErrors.email = 'Email validation is in progress. Please wait...';
+      setEmailTouched(true);
+    }
+
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Phone number is required';
+    } else if (!validatePhone(formData.phone.trim())) {
+      newErrors.phone = 'Please enter a valid 10-digit phone number';
+      setPhoneTouched(true);
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -65,7 +109,10 @@ export const Contact = () => {
 
       setIsSubmitting(false);
       setSubmitSuccess(true);
-      setFormData({ name: '', email: '', subject: '', message: '' });
+      setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+      setErrors({});
+      setEmailTouched(false);
+      setPhoneTouched(false);
 
       // Automatically hide success alert after 5 seconds
       setTimeout(() => setSubmitSuccess(false), 5000);
@@ -224,28 +271,82 @@ export const Contact = () => {
                     type="text"
                     id="name"
                     name="name"
-                    required
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 dark:focus:ring-green-400/50 text-slate-800 dark:text-white"
+                    className={`w-full px-4 py-3 text-sm bg-slate-50 dark:bg-slate-950 border ${
+                      errors.name ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'
+                    } rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 dark:focus:ring-green-400/50 text-slate-800 dark:text-white`}
                     placeholder="Enter your name"
                   />
+                  {errors.name && (
+                    <span className="text-red-500 text-xs mt-1 block flex items-center gap-1">
+                      <AlertCircle size={12} /> {errors.name}
+                    </span>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="email" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
                     Your Email *
                   </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 dark:focus:ring-green-400/50 text-slate-800 dark:text-white"
-                    placeholder="name@institution.com"
-                  />
+                  <div className="relative">
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      onBlur={() => setEmailTouched(true)}
+                      className={`w-full pr-10 px-4 py-3 text-sm bg-slate-50 dark:bg-slate-950 border ${
+                        emailTouched && (emailError || errors.email) ? 'border-red-500' : 'border-slate-200 dark:border-slate-850'
+                      } rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 dark:focus:ring-green-400/50 text-slate-800 dark:text-white`}
+                      placeholder="name@institution.com"
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
+                      {formData.email && formData.email.trim() !== '' && (
+                        <>
+                          {isValidating && (
+                            <div className="w-4 h-4 border-2 border-slate-300 border-t-green-600 rounded-full animate-spin" />
+                          )}
+                          {!isValidating && isValid === true && (
+                            <CheckCircle size={16} className="text-green-500" />
+                          )}
+                          {!isValidating && isValid === false && (
+                            <AlertCircle size={16} className="text-red-500" />
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {emailTouched && (emailError || errors.email) && (
+                    <span className="text-red-500 text-xs mt-1 block flex items-center gap-1">
+                      <AlertCircle size={12} /> {emailError || errors.email}
+                    </span>
+                  )}
                 </div>
+              </div>
+
+              {/* Phone Number Field */}
+              <div>
+                <label htmlFor="phone" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
+                  Phone Number * (10-Digit Mobile)
+                </label>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  onBlur={() => setPhoneTouched(true)}
+                  className={`w-full px-4 py-3 text-sm bg-slate-50 dark:bg-slate-950 border ${
+                    phoneTouched && errors.phone ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'
+                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 dark:focus:ring-green-400/50 text-slate-800 dark:text-white`}
+                  placeholder="e.g. 9876543210"
+                />
+                {phoneTouched && errors.phone && (
+                  <span className="text-red-500 text-xs mt-1 block flex items-center gap-1">
+                    <AlertCircle size={12} /> {errors.phone}
+                  </span>
+                )}
               </div>
 
               <div>
@@ -256,12 +357,18 @@ export const Contact = () => {
                   type="text"
                   id="subject"
                   name="subject"
-                  required
                   value={formData.subject}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 dark:focus:ring-green-400/50 text-slate-800 dark:text-white"
+                  className={`w-full px-4 py-3 text-sm bg-slate-50 dark:bg-slate-950 border ${
+                    errors.subject ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'
+                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 dark:focus:ring-green-400/50 text-slate-800 dark:text-white`}
                   placeholder="e.g. Monthly chemical contract request"
                 />
+                {errors.subject && (
+                  <span className="text-red-500 text-xs mt-1 block flex items-center gap-1">
+                    <AlertCircle size={12} /> {errors.subject}
+                  </span>
+                )}
               </div>
 
               <div>
@@ -271,13 +378,19 @@ export const Contact = () => {
                 <textarea
                   id="message"
                   name="message"
-                  required
                   rows="5"
                   value={formData.message}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 dark:focus:ring-green-400/50 text-slate-800 dark:text-white resize-none"
+                  className={`w-full px-4 py-3 text-sm bg-slate-50 dark:bg-slate-950 border ${
+                    errors.message ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'
+                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 dark:focus:ring-green-400/50 text-slate-800 dark:text-white resize-none`}
                   placeholder="Outline your detailed specifications or institutional queries..."
                 />
+                {errors.message && (
+                  <span className="text-red-500 text-xs mt-1 block flex items-center gap-1">
+                    <AlertCircle size={12} /> {errors.message}
+                  </span>
+                )}
               </div>
 
               <button

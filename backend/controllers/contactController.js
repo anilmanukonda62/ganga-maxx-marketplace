@@ -1,6 +1,7 @@
 const ContactMessage = require('../models/ContactMessage');
 const asyncHandler = require('../utils/asyncHandler');
 const { validationResult } = require('express-validator');
+const { validateEmailExists } = require('../utils/validateEmail');
 
 /**
  * @desc    Submit a new contact message
@@ -14,11 +15,19 @@ const createContactMessage = asyncHandler(async (req, res) => {
     throw new Error(errors.array().map((err) => err.msg).join(', '));
   }
 
-  const { name, email, subject, message } = req.body;
+  const { name, email, phone, subject, message } = req.body;
+
+  // Run real-time email existence check
+  const emailValidation = await validateEmailExists(email);
+  if (!emailValidation.valid) {
+    res.status(400);
+    throw new Error('This email does not exist. Please provide a valid, active email address.');
+  }
 
   const contactMessage = await ContactMessage.create({
     name,
     email,
+    phone,
     subject,
     message,
   });

@@ -15,7 +15,8 @@ import {
   User,
   Calendar,
   Tag,
-  MessageSquare
+  MessageSquare,
+  Phone
 } from 'lucide-react';
 
 const ContactMessages = () => {
@@ -202,6 +203,7 @@ const ContactMessages = () => {
                     <td className="p-4">
                       <div className="font-bold text-slate-900 dark:text-white">{msg.name}</div>
                       <div className="text-xs text-slate-400 dark:text-slate-500 font-mono">{msg.email}</div>
+                      {msg.phone && <div className="text-xs text-slate-500 dark:text-slate-400 font-mono">{msg.phone}</div>}
                     </td>
                     <td className="p-4 text-slate-600 dark:text-slate-350 font-semibold truncate max-w-[250px]" title={msg.subject}>
                       {msg.subject}
@@ -236,6 +238,17 @@ const ContactMessages = () => {
                     </td>
                     <td className="p-4 text-center">
                       <div className="flex items-center justify-center gap-2">
+                        {/* Call Button */}
+                        {msg.phone && (
+                          <motion.a
+                            href={`tel:${msg.phone}`}
+                            whileHover={{ scale: 1.02 }}
+                            className="p-1.5 rounded-lg border border-slate-200 dark:border-darkbg-700 text-slate-500 hover:text-green-600 hover:border-green-250 dark:hover:border-green-950 hover:bg-green-50 dark:hover:bg-darkbg-900 transition cursor-pointer"
+                            title={`Call ${msg.phone}`}
+                          >
+                            <Phone className="w-4 h-4" />
+                          </motion.a>
+                        )}
                         {/* View Button */}
                         <motion.button
                           onClick={() => openDetailModal(msg)}
@@ -329,6 +342,26 @@ const ContactMessages = () => {
                     Reply Email
                   </motion.a>
                 </div>
+
+                {/* Phone Number */}
+                {selectedMessage.phone && (
+                  <div className="flex items-center justify-between p-3 rounded-2xl border border-slate-100 dark:border-darkbg-750 bg-slate-50/50 dark:bg-darkbg-900/10">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <Phone className="w-5 h-5 text-slate-400 mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Phone Number</span>
+                        <p className="text-sm font-semibold text-slate-800 dark:text-white">{selectedMessage.phone}</p>
+                      </div>
+                    </div>
+                    <motion.a
+                      href={`tel:${selectedMessage.phone}`}
+                      whileHover={{ scale: 1.02 }}
+                      className="px-3.5 py-1.5 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-lg transition shrink-0 cursor-pointer"
+                    >
+                      Call Number
+                    </motion.a>
+                  </div>
+                )}
 
                 {/* Subject and Date */}
                 <div className="flex items-start gap-3 p-3 rounded-2xl border border-slate-100 dark:border-darkbg-750 bg-slate-50/50 dark:bg-darkbg-900/10">

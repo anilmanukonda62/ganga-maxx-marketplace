@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, MapPin, Phone, Mail, CheckCircle, AlertCircle } from 'lucide-react';
 import { useProducts } from '../hooks/useProducts';
+import { useEmailValidation } from '../hooks/useEmailValidation';
 
 export const Enquiry = () => {
   const location = useLocation();
@@ -26,6 +27,10 @@ export const Enquiry = () => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  // Email validation states
+  const [emailTouched, setEmailTouched] = useState(false);
+  const { isValidating, isValid, errorMessage: emailError } = useEmailValidation(formData.email);
 
   // Prefill field if product details state exists
   useEffect(() => {
@@ -63,6 +68,16 @@ export const Enquiry = () => {
       newErrors.phone = 'Phone Number is required';
     } else if (!validatePhone(formData.phone.trim())) {
       newErrors.phone = 'Please enter a valid 10-digit phone number (starts with 6-9)';
+    }
+
+    if (formData.email && formData.email.trim() !== '') {
+      if (isValidating) {
+        newErrors.email = 'Email validation is in progress. Please wait...';
+        setEmailTouched(true);
+      } else if (isValid === false) {
+        newErrors.email = emailError || 'This email does not exist';
+        setEmailTouched(true);
+      }
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -117,6 +132,7 @@ export const Enquiry = () => {
         quantity: '',
         requirements: ''
       });
+      setEmailTouched(false);
 
       // Hide success notification after 7 seconds
       setTimeout(() => setSubmitSuccess(false), 7000);
@@ -245,15 +261,40 @@ export const Enquiry = () => {
                   <label htmlFor="email" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
                     Email Address (Optional)
                   </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 dark:focus:ring-green-400/50 text-slate-800 dark:text-white"
-                    placeholder="e.g. admin@regency.com"
-                  />
+                  <div className="relative">
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      onBlur={() => setEmailTouched(true)}
+                      className={`w-full pr-10 px-4 py-3 text-sm bg-slate-50 dark:bg-slate-950 border ${
+                        emailTouched && (emailError || errors.email) ? 'border-red-500' : 'border-slate-200'
+                      } rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/50 dark:focus:ring-green-400/50 text-slate-800 dark:text-white`}
+                      placeholder="e.g. admin@regency.com"
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
+                      {formData.email && formData.email.trim() !== '' && (
+                        <>
+                          {isValidating && (
+                            <div className="w-4 h-4 border-2 border-slate-300 border-t-green-600 rounded-full animate-spin" />
+                          )}
+                          {!isValidating && isValid === true && (
+                            <CheckCircle size={16} className="text-green-500" />
+                          )}
+                          {!isValidating && isValid === false && (
+                            <AlertCircle size={16} className="text-red-500" />
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {emailTouched && (emailError || errors.email) && (
+                    <span className="text-red-500 text-xs mt-1 block flex items-center gap-1">
+                      <AlertCircle size={12} /> {emailError || errors.email}
+                    </span>
+                  )}
                 </div>
               </div>
 

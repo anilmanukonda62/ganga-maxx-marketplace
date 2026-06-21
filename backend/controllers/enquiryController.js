@@ -4,6 +4,7 @@ const { validationResult } = require('express-validator');
 const { generateQuotationEmailHTML } = require('../utils/emailHelper');
 const sendEmailViaBrevo = require('../utils/sendEmailViaBrevo');
 const generateQuotationPDF = require('../utils/generateQuotationPDF');
+const { validateEmailExists } = require('../utils/validateEmail');
 
 /**
  * @desc    Submit a new enquiry
@@ -26,6 +27,15 @@ const createEnquiry = asyncHandler(async (req, res) => {
     quantity,
     message,
   } = req.body;
+
+  // Run email validation if provided and not empty
+  if (email && email.trim() !== '') {
+    const emailValidation = await validateEmailExists(email);
+    if (!emailValidation.valid) {
+      res.status(400);
+      throw new Error('This email does not exist. Please provide a valid, active email address.');
+    }
+  }
 
   const enquiry = await Enquiry.create({
     fullName,

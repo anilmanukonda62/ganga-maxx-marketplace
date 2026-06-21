@@ -75,6 +75,24 @@ app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'API is running' });
 });
 
+// Email Validation Endpoint
+const { validateEmailExists } = require('./utils/validateEmail');
+app.post('/api/validate-email', async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+    const result = await validateEmailExists(email);
+    if (!result.valid) {
+      return res.json({ success: true, valid: false, message: 'This email does not exist' });
+    }
+    return res.json({ success: true, valid: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Centralized error handling middleware
 app.use(errorMiddleware);
 

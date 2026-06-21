@@ -12,6 +12,12 @@ const { protect } = require('../middleware/authMiddleware');
 const validateContactMessage = [
   body('name').notEmpty().withMessage('Name is required').trim(),
   body('email').isEmail().withMessage('Invalid email address').trim(),
+  body('phone')
+    .notEmpty()
+    .withMessage('Phone number is required')
+    .matches(/^[6-9]\d{9}$/)
+    .withMessage('Please enter a valid 10-digit phone number')
+    .trim(),
   body('subject').notEmpty().withMessage('Subject is required').trim(),
   body('message').notEmpty().withMessage('Message is required').trim(),
 ];
