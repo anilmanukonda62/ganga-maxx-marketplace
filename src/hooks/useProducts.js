@@ -96,15 +96,26 @@ export const useProducts = () => {
   // Calculate dynamic price ranges based on the dataset
   const getPriceRange = () => {
     if (products.length === 0) return { min: 0, max: 0 };
-    const prices = products.map(p => {
-      const hasMultipleVariants = p.variants && p.variants.length > 1;
-      return hasMultipleVariants
-        ? Math.min(...p.variants.map(v => v.price))
-        : p.price;
+    
+    let allPrices = [];
+    products.forEach(p => {
+      if (p.price !== undefined && p.price !== null && !isNaN(p.price)) {
+        allPrices.push(Number(p.price));
+      }
+      if (p.variants && p.variants.length > 0) {
+        p.variants.forEach(v => {
+          if (v.price !== undefined && v.price !== null && !isNaN(v.price)) {
+            allPrices.push(Number(v.price));
+          }
+        });
+      }
     });
+
+    if (allPrices.length === 0) return { min: 0, max: 0 };
+
     return {
-      min: Math.min(...prices),
-      max: Math.max(...prices)
+      min: Math.min(...allPrices),
+      max: Math.max(...allPrices)
     };
   };
 
