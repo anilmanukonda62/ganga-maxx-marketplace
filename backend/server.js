@@ -69,6 +69,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/enquiries', enquiryRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/multi-enquiries', multiEnquiryRoutes);
+app.use('/api/chatbot', require('./routes/chatbotRoutes'));
 
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {

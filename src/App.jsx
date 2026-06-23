@@ -14,6 +14,7 @@ import { Contact } from './pages/Contact';
 import { Enquiry } from './pages/Enquiry';
 import { MultiEnquiry } from './pages/MultiEnquiry';
 import { EnquiryListWidget } from './components/EnquiryListWidget';
+import ChatWidget from './components/ChatWidget';
 
 // ScrollToTop helper component to reset scroll position on page change
 const ScrollToTop = () => {
@@ -136,6 +137,7 @@ function AppContent() {
 
       <Footer />
       <EnquiryListWidget />
+      <ChatWidget />
 
       {/* Back to Top Button */}
       <AnimatePresence>
