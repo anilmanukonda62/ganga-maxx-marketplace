@@ -2,6 +2,196 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Bot } from 'lucide-react';
 
+const formatMessage = (content) => {
+  if (!content) return null;
+
+  // Split content by paragraphs/blocks
+  const blocks = content.split(/\n\s*\n/);
+  
+  return blocks.map((block, blockIdx) => {
+    const trimmedBlock = block.trim();
+    if (!trimmedBlock) return null;
+
+    // Helper to render inline markdown bold (**text**)
+    const renderInlineBold = (text) => {
+      const parts = text.split(/(\*\*.*?\*\*)/g);
+      return parts.map((part, idx) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={idx} style={{ fontWeight: '700', color: '#111827' }}>{part.slice(2, -2)}</strong>;
+        }
+        return part;
+      });
+    };
+
+    // Helper to render italic (*text*)
+    const renderItalicAndBold = (text) => {
+      const parts = text.split(/(\*\*.*?\*\*|\*.*?\*)/g);
+      return parts.map((part, idx) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={idx} style={{ fontWeight: '700', color: '#111827' }}>{part.slice(2, -2)}</strong>;
+        }
+        if (part.startsWith('*') && part.endsWith('*')) {
+          return <em key={idx} style={{ fontStyle: 'italic' }}>{part.slice(1, -1)}</em>;
+        }
+        return part;
+      });
+    };
+
+    // 1. Check if block is a list item of product recommendations (e.g. 1. **Disinfectants (Phenyl)** - ₹149\n   Ideal for...)
+    if (/^\d+\.\s+\*\*/.test(trimmedBlock)) {
+      const lines = trimmedBlock.split('\n');
+      const firstLine = lines[0].trim();
+      const restLines = lines.slice(1).map(l => l.trim()).join(' ');
+
+      // Extract Name and Price from "1. **Product Name** - ₹Price"
+      const nameMatch = firstLine.match(/^\d+\.\s+\*\*(.*?)\*\*/);
+      const priceMatch = firstLine.match(/-\s*(₹?\s*\d+.*)$/);
+
+      const productName = nameMatch ? nameMatch[1] : '';
+      const productPrice = priceMatch ? priceMatch[1] : '';
+
+      if (productName) {
+        return (
+          <div key={blockIdx} style={{
+            backgroundColor: '#f9fafb',
+            borderLeft: '4px solid #1a7a4c',
+            padding: '10px 14px',
+            margin: '10px 0',
+            borderRadius: '0 8px 8px 0',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+              <span style={{ fontWeight: 'bold', color: '#1a7a4c', fontSize: '13px' }}>{productName}</span>
+              {productPrice && (
+                <span style={{
+                  backgroundColor: '#e6f4ea',
+                  color: '#137333',
+                  fontSize: '10.5px',
+                  fontWeight: 'bold',
+                  padding: '2px 8px',
+                  borderRadius: '12px'
+                }}>{productPrice}</span>
+              )}
+            </div>
+            {restLines && (
+              <div style={{ color: '#4b5563', fontSize: '12px', lineHeight: '1.4', marginTop: '4px' }}>
+                {renderInlineBold(restLines)}
+              </div>
+            )}
+          </div>
+        );
+      }
+    }
+
+    // 2. Check if block is a single product detail block (e.g. "**Product Name**\n💰 Price:...")
+    if (trimmedBlock.startsWith('**') && trimmedBlock.includes('💰 Price:')) {
+      const lines = trimmedBlock.split('\n').map(l => l.trim());
+      const titleLine = lines[0];
+      const detailLines = lines.slice(1);
+
+      const productName = titleLine.match(/^\*\*(.*?)\*\*/)?.[1] || titleLine;
+
+      return (
+        <div key={blockIdx} style={{
+          backgroundColor: '#ffffff',
+          border: '1px solid #e5e7eb',
+          borderRadius: '10px',
+          padding: '12px',
+          margin: '10px 0',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+        }} className="dark:bg-slate-800 dark:border-slate-700">
+          <div style={{ fontWeight: 'bold', color: '#1a7a4c', fontSize: '13.5px', marginBottom: '8px', borderBottom: '1px solid #f3f4f6', paddingBottom: '6px' }} className="dark:border-slate-700">
+            {productName}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {detailLines.map((line, lIdx) => {
+              if (line.startsWith('💰')) {
+                return (
+                  <div key={lIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+                    <span>💰</span>
+                    <span style={{ color: '#6b7280' }}>Price:</span>
+                    <span style={{ fontWeight: '600', color: '#111827' }} className="dark:text-slate-100">{line.replace('💰 Price:', '').trim()}</span>
+                  </div>
+                );
+              }
+              if (line.startsWith('📦')) {
+                return (
+                  <div key={lIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+                    <span>📦</span>
+                    <span style={{ color: '#6b7280' }}>Variants:</span>
+                    <span style={{ color: '#374151', fontWeight: '500' }} className="dark:text-slate-200">{line.replace('📦 Variants:', '').trim()}</span>
+                  </div>
+                );
+              }
+              if (line.startsWith('✅') || line.startsWith('❌') || line.startsWith('⚠️') || line.includes('Stock:')) {
+                const stockText = line.replace(/^[✅❌⚠️]\s*/, '').replace('Stock:', '').trim();
+                const isAvailable = stockText.toLowerCase().includes('available') || stockText.toLowerCase().includes('in stock');
+                const isLimited = stockText.toLowerCase().includes('limited');
+                const emoji = isAvailable ? '✅' : (isLimited ? '⚠️' : '❌');
+                const badgeBg = isAvailable ? '#e6f4ea' : (isLimited ? '#fef3c7' : '#fde8e8');
+                const badgeColor = isAvailable ? '#137333' : (isLimited ? '#b45309' : '#9b1c1c');
+
+                return (
+                  <div key={lIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+                    <span>{emoji}</span>
+                    <span style={{ color: '#6b7280' }}>Stock:</span>
+                    <span style={{
+                      backgroundColor: badgeBg,
+                      color: badgeColor,
+                      fontSize: '10.5px',
+                      fontWeight: 'bold',
+                      padding: '1px 6px',
+                      borderRadius: '4px'
+                    }}>{stockText}</span>
+                  </div>
+                );
+              }
+              if (line.startsWith('📝') || line.length > 0) {
+                const descText = line.replace(/^📝\s*/, '').trim();
+                return (
+                  <div key={lIdx} style={{ display: 'flex', gap: '8px', fontSize: '12.5px', marginTop: '4px', borderTop: '1px dashed #f3f4f6', paddingTop: '6px' }} className="dark:border-slate-700">
+                    <span>📝</span>
+                    <span style={{ color: '#4b5563', fontStyle: 'italic', lineHeight: '1.4' }} className="dark:text-slate-300">{descText}</span>
+                  </div>
+                );
+              }
+              return null;
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    // 3. Check if block is a bulk enquiry suggestion or alert
+    if (trimmedBlock.startsWith('💡') || (trimmedBlock.includes('bulk orders') && trimmedBlock.includes('special pricing'))) {
+      return (
+        <div key={blockIdx} style={{
+          backgroundColor: '#fffbeb',
+          border: '1px solid #fef3c7',
+          borderRadius: '8px',
+          padding: '10px 12px',
+          margin: '10px 0',
+          display: 'flex',
+          gap: '8px',
+          alignItems: 'flex-start'
+        }} className="dark:bg-slate-900 dark:border-amber-950">
+          <span style={{ fontSize: '13px' }}>💡</span>
+          <span style={{ fontSize: '12px', color: '#b45309', fontStyle: 'italic', lineHeight: '1.4' }} className="dark:text-amber-300">
+            {renderItalicAndBold(trimmedBlock.replace(/^💡\s*/, ''))}
+          </span>
+        </div>
+      );
+    }
+
+    // 4. Default Paragraph block
+    return (
+      <p key={blockIdx} style={{ margin: '8px 0', fontSize: '12.5px', lineHeight: '1.5', color: '#374151' }} className="dark:text-slate-200">
+        {renderItalicAndBold(trimmedBlock)}
+      </p>
+    );
+  });
+};
+
 const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
@@ -215,13 +405,14 @@ const ChatWidget = () => {
                     </div>
                   )}
                   <div style={{
-                    maxWidth: '75%',
+                    maxWidth: msg.role === 'user' ? '75%' : '85%',
                     padding: '10px 14px',
                     borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                     backgroundColor: msg.role === 'user' ? '#1a7a4c' : undefined,
                     color: msg.role === 'user' ? 'white' : undefined,
                     fontSize: '13px',
                     lineHeight: '1.5',
+                    whiteSpace: msg.role === 'user' ? 'pre-wrap' : undefined,
                     boxShadow: '0 1px 4px rgba(0,0,0,0.1)'
                   }}
                   className={msg.role === 'user' ? '' : 'bg-white text-slate-900 dark:bg-slate-800 dark:text-slate-100'}
@@ -236,7 +427,9 @@ const ChatWidget = () => {
                           />
                         ))}
                       </div>
-                    ) : msg.content}
+                    ) : (
+                      msg.role === 'bot' ? formatMessage(msg.content) : msg.content
+                    )}
                   </div>
                 </div>
               ))}
