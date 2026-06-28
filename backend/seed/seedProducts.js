@@ -349,10 +349,13 @@ const seedDB = async () => {
       await Admin.create({
         username: defaultUsername,
         password: defaultPassword,
+        email: 'anilkumarmanukonda07@gmail.com'
       });
       console.log(`Successfully created default admin user: ${defaultUsername}`);
     } else {
-      console.log(`Admin user "${defaultUsername}" already exists. Skipping.`);
+      existingAdmin.email = 'anilkumarmanukonda07@gmail.com';
+      await existingAdmin.save();
+      console.log(`Admin user "${defaultUsername}" already exists. Updated email to: anilkumarmanukonda07@gmail.com`);
     }
 
     console.log('*** Database seeding completed successfully. ***');

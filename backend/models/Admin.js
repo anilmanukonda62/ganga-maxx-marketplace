@@ -13,6 +13,11 @@ const adminSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Password is required'],
     },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
   },
   {
     timestamps: true,

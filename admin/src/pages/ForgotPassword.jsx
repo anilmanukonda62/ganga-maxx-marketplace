@@ -3,32 +3,35 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { Sun, Moon, ArrowLeft, User, Loader2 } from 'lucide-react';
+import { Sun, Moon, ArrowLeft, Mail, Loader2 } from 'lucide-react';
 
 const ForgotPassword = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!username) {
-      toast.error('Please enter your admin username');
+    setErrorMsg('');
+
+    if (!email) {
+      setErrorMsg('Please enter your registered admin email');
       return;
     }
 
     setIsLoading(true);
     try {
-      const response = await api.post('/admin/forgot-password', { username });
+      const response = await api.post('/admin/forgot-password', { email });
       if (response.data.success) {
         toast.success(response.data.message || 'OTP sent successfully!');
-        // Pass username through router state to use it in verify OTP
-        navigate('/verify-otp', { state: { username } });
+        // Pass email through router state to use it in verify OTP
+        navigate('/verify-otp', { state: { email } });
       }
     } catch (error) {
       const message = error.response?.data?.message || 'Error sending OTP. Please try again.';
-      toast.error(message);
+      setErrorMsg(message);
     } finally {
       setIsLoading(false);
     }
@@ -60,27 +63,33 @@ const ForgotPassword = () => {
           </Link>
           <h2 className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">Forgot Password</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
-            Enter your admin username and we'll send a 6-digit OTP to the registered recovery email.
+            Enter your registered admin email and we'll send a 6-digit OTP to verify your identity.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Username Input */}
+          {/* Email Input */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Username</label>
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Registered Email Address</label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
-                <User className="w-5 h-5" />
+                <Mail className="w-5 h-5" />
               </span>
               <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter admin username"
+                type="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errorMsg) setErrorMsg('');
+                }}
+                placeholder="Enter your registered admin email"
                 className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-darkbg-900 border border-slate-200 dark:border-darkbg-700 focus:border-primary-500 dark:focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 rounded-2xl outline-none transition"
                 disabled={isLoading}
               />
             </div>
+            {errorMsg && (
+              <p className="text-xs text-red-500 font-semibold mt-1">{errorMsg}</p>
+            )}
           </div>
 
           {/* Submit Button */}

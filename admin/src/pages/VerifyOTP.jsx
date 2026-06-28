@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { Sun, Moon, ArrowLeft, Loader2, RefreshCw } from 'lucide-react';
@@ -12,19 +13,20 @@ const VerifyOTP = () => {
   const [isResending, setIsResending] = useState(false);
   
   const { theme, toggleTheme } = useTheme();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const inputRefs = useRef([]);
 
-  const username = location.state?.username;
+  const email = location.state?.email;
 
-  // Redirect if username is missing
+  // Redirect if email is missing
   useEffect(() => {
-    if (!username) {
+    if (!email) {
       toast.error('Session expired. Please start over.');
       navigate('/forgot-password');
     }
-  }, [username, navigate]);
+  }, [email, navigate]);
 
   // Countdown timer effect
   useEffect(() => {
@@ -102,19 +104,14 @@ const VerifyOTP = () => {
 
     setIsLoading(true);
     try {
-      const response = await api.post('/api/admin/verify-otp', {
-        username,
+      const response = await api.post('/admin/verify-otp', {
+        email,
         otp: finalOtp
       });
       if (response.data.success) {
         toast.success('OTP verified successfully!');
-        // Navigate to reset password and pass resetToken + username
-        navigate('/reset-password', {
-          state: {
-            username,
-            resetToken: response.data.resetToken
-          }
-        });
+        login(response.data.token, response.data.admin);
+        navigate('/dashboard');
       }
     } catch (error) {
       const message = error.response?.data?.message || 'Invalid or expired OTP';
@@ -127,7 +124,7 @@ const VerifyOTP = () => {
   const handleResend = async () => {
     setIsResending(true);
     try {
-      const response = await api.post('/api/admin/forgot-password', { username });
+      const response = await api.post('/admin/forgot-password', { email });
       if (response.data.success) {
         toast.success('A new OTP has been sent!');
         setOtp(['', '', '', '', '', '']);

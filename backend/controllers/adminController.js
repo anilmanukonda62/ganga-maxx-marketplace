@@ -122,18 +122,34 @@ const getDashboardStats = asyncHandler(async (req, res) => {
  * @access  Public
  */
 const forgotPassword = asyncHandler(async (req, res) => {
-  const { username } = req.body;
+  const { email } = req.body;
 
-  if (!username) {
-    res.status(400);
-    throw new Error('Please provide admin username');
+  if (!email) {
+    return res.status(400).json({
+      success: false,
+      message: 'Please provide registered email address'
+    });
   }
 
-  // Find admin by username
-  const admin = await Admin.findOne({ username });
+  const cleanEmail = email.toLowerCase().trim();
+
+  // Find admin by email
+  const admin = await Admin.findOne({ email: cleanEmail });
   if (!admin) {
-    res.status(404);
-    throw new Error('Admin username not found');
+    return res.status(400).json({
+      success: false,
+      message: "This email is not registered. Please enter the correct admin email."
+    });
+  }
+
+  // Check rate limit (60 seconds)
+  const existingRecord = otpStore.get(cleanEmail);
+  if (existingRecord && Date.now() - existingRecord.lastRequested < 60 * 1000) {
+    const secondsLeft = Math.ceil((60 * 1000 - (Date.now() - existingRecord.lastRequested)) / 1000);
+    return res.status(429).json({
+      success: false,
+      message: `Please wait ${secondsLeft} seconds before requesting a new OTP.`
+    });
   }
 
   // Generate 6-digit OTP
@@ -141,40 +157,42 @@ const forgotPassword = asyncHandler(async (req, res) => {
   const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
   // Store in memory
-  otpStore.set(username, { otp, expiresAt });
+  otpStore.set(cleanEmail, {
+    otp,
+    expiresAt,
+    attempts: 0,
+    lastRequested: Date.now()
+  });
 
-  // Send OTP Email via Nodemailer
-  const mailOptions = {
-    from: '"Ganga Maxx Admin Panel" <anilkumarmanukonda07@gmail.com>',
-    to: 'anilkumarmanukonda07@gmail.com', // Sent to recovery email as specified
-    subject: 'Ganga Maxx Admin Recovery - 6 Digit OTP',
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <img src="https://res.cloudinary.com/dzncyz7bu/image/upload/v1781254441/Screenshot_2026-06-11_221827_rcucbp.png" alt="Ganga Maxx Logo" style="max-height: 60px;" />
-          <h2 style="color: #1a7a4c; margin-top: 10px;">Ganga Maxx Admin Recovery</h2>
-        </div>
-        <p>Hello Admin,</p>
-        <p>A password reset request was initiated for username: <strong>${username}</strong>. Please use the following 6-digit OTP to verify your identity. This OTP is valid for <strong>10 minutes</strong>.</p>
-        <div style="background-color: #f4fbf7; border: 1px dashed #1a7a4c; border-radius: 4px; padding: 15px; text-align: center; margin: 25px 0;">
-          <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1a7a4c;">${otp}</span>
-        </div>
-        <p style="color: #ef4444; font-size: 13px;">If you did not request this password reset, please ignore this email or secure your credentials immediately.</p>
-        <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 20px 0;" />
-        <p style="font-size: 11px; color: #777777; text-align: center;">This is an automated security system notification.</p>
+  console.log(`[ForgotPassword Debug] Generated OTP: ${otp} for email ${cleanEmail}`);
+
+  // Send OTP Email via Brevo
+  const mailHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="https://res.cloudinary.com/dzncyz7bu/image/upload/v1781254441/Screenshot_2026-06-11_221827_rcucbp.png" alt="Ganga Maxx Logo" style="max-height: 60px;" />
+        <h2 style="color: #1a7a4c; margin-top: 10px;">Ganga Maxx Admin Recovery</h2>
       </div>
-    `,
-  };
+      <p>Hello Admin,</p>
+      <p>A password reset request was initiated for your admin account. Please use the following 6-digit OTP to verify your identity. This OTP is valid for <strong>10 minutes</strong>.</p>
+      <div style="background-color: #f4fbf7; border: 1px dashed #1a7a4c; border-radius: 4px; padding: 15px; text-align: center; margin: 25px 0;">
+        <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1a7a4c;">${otp}</span>
+      </div>
+      <p style="color: #ef4444; font-size: 13px;">If you did not request this password reset, please ignore this email or secure your credentials immediately.</p>
+      <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 20px 0;" />
+      <p style="font-size: 11px; color: #777777; text-align: center;">This is an automated security system notification.</p>
+    </div>
+  `;
 
   await sendEmailViaBrevo({
-    to: mailOptions.to,
-    subject: mailOptions.subject,
-    htmlContent: mailOptions.html,
+    to: cleanEmail,
+    subject: 'Ganga Maxx Admin Recovery - 6 Digit OTP',
+    htmlContent: mailHtml,
   });
 
   res.json({
     success: true,
-    message: 'OTP sent successfully to registered recovery email',
+    message: 'OTP sent to your email',
   });
 });
 
@@ -184,40 +202,68 @@ const forgotPassword = asyncHandler(async (req, res) => {
  * @access  Public
  */
 const verifyOtp = asyncHandler(async (req, res) => {
-  const { username, otp } = req.body;
+  const { email, otp } = req.body;
 
-  if (!username || !otp) {
-    res.status(400);
-    throw new Error('Please provide username and OTP');
+  if (!email || !otp) {
+    return res.status(400).json({
+      success: false,
+      message: 'Please provide email and OTP'
+    });
   }
 
-  const record = otpStore.get(username);
+  const cleanEmail = email.toLowerCase().trim();
+  const record = otpStore.get(cleanEmail);
 
   if (!record) {
-    res.status(400);
-    throw new Error('No OTP request found for this admin');
+    return res.status(400).json({
+      success: false,
+      message: 'No OTP request found for this admin. Please request a new OTP.'
+    });
   }
 
   if (Date.now() > record.expiresAt) {
-    otpStore.delete(username);
-    res.status(400);
-    throw new Error('OTP has expired');
+    otpStore.delete(cleanEmail);
+    return res.status(400).json({
+      success: false,
+      message: 'OTP has expired'
+    });
   }
 
   if (record.otp !== otp) {
-    res.status(400);
-    throw new Error('Invalid OTP');
+    record.attempts += 1;
+    if (record.attempts >= 5) {
+      otpStore.delete(cleanEmail);
+      return res.status(400).json({
+        success: false,
+        message: 'Maximum invalid OTP attempts exceeded. Please request a new OTP.'
+      });
+    }
+    return res.status(400).json({
+      success: false,
+      message: `Invalid OTP. You have ${5 - record.attempts} attempts remaining.`
+    });
   }
 
-  // Generate a temporary reset token (expires in 10 minutes)
-  const resetToken = jwt.sign({ username }, process.env.JWT_SECRET, {
-    expiresIn: '10m',
-  });
+  // Clear OTP from memory
+  otpStore.delete(cleanEmail);
+
+  // Find admin
+  const admin = await Admin.findOne({ email: cleanEmail });
+  if (!admin) {
+    return res.status(404).json({
+      success: false,
+      message: 'Admin account not found'
+    });
+  }
 
   res.json({
     success: true,
     message: 'OTP verified successfully',
-    resetToken,
+    token: generateToken(admin._id),
+    admin: {
+      username: admin.username,
+      email: admin.email
+    }
   });
 });
 
